@@ -1,0 +1,16 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: rust-mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: rust-axum-rest-api
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+
+volumes:
+  mysqldata:

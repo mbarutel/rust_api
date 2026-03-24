@@ -1,7 +1,12 @@
+use argon2::{
+    Argon2, PasswordHasher,
+    password_hash::{SaltString, rand_core::OsRng},
+};
 use axum::{
     Json,
     extract::{Path, Query, State},
     http::StatusCode,
+    response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -14,8 +19,8 @@ use crate::state::AppState;
 // Should this be here or in models?
 #[derive(Serialize)]
 pub struct UserResponse {
-    pub id: Uuid,
-    pub email: String, // TODO: follow that pattern from 21+ tips video by boghdan
+    pub id: u64,
+    pub email: String,
     pub name: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -74,7 +79,7 @@ pub async fn list(
 
     // In production query from database
     let users = vec![UserResponse {
-        id: Uuid::new_v4(),
+        id: 1,
         email: "user@example.com".to_string(),
         name: "Example User".to_string(),
         created_at: chrono::Utc::now(),
@@ -96,17 +101,43 @@ pub async fn create(
 
     tracing::info!("Creating new user");
 
-    // Check for existing user
-    // if user_exists(&state.db, &payload.email).await? {
-    //   return Err(AppError::Conflict("Email already registered".to_string()));
-    // }
+    let exists = sqlx::query_scalar!(
+        "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)",
+        payload.email,
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| AppError::Internal(e.into()))?;
 
-    // Hash password and create user
+    if exists == 1 {
+        return Err(AppError::Conflict("Email already registered".to_string()));
+    }
+
+    // Creating password
+    let salt = SaltString::generate(&mut OsRng);
+    let password_hash = Argon2::default()
+        .hash_password(payload.password.as_bytes(), &salt)
+        .map_err(|e| AppError::Internal(anyhow::Error::msg(e.to_string())))?
+        .to_string();
+
+    let now = chrono::Utc::now();
+
+    let result = sqlx::query!(
+        "INSERT INTO users (email, name, password_hash, created_at) VALUES (?, ?, ?, ?)",
+        payload.email,
+        payload.name,
+        password_hash,
+        now,
+    )
+    .execute(&state.db)
+    .await
+    .map_err(|e| AppError::Internal(e.into()))?;
+
     let user = UserResponse {
-        id: Uuid::new_v4(),
+        id: result.last_insert_id(),
         email: payload.email,
         name: payload.name,
-        created_at: chrono::Utc::now(),
+        created_at: now,
     };
 
     tracing::info!(user.id = %user.id, "User created!");
@@ -116,10 +147,7 @@ pub async fn create(
 
 // Get user by ID
 #[tracing::instrument(skip(state))]
-pub async fn get(
-    State(state): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<UserResponse>> {
+pub async fn get(State(state): State<AppState>, Path(id): Path<u64>) -> Result<Json<UserResponse>> {
     // Query user from database
     // let user = find_user(&state.db, id).await?.ok_or(AppError::NotFound)?;
 
@@ -138,7 +166,7 @@ pub async fn get(
 #[tracing::instrument(skip(state, payload))]
 pub async fn update(
     State(state): State<AppState>,
-    Path(id): Path<Uuid>,
+    Path(id): Path<u64>,
     Json(payload): Json<UpdateUserRequest>,
 ) -> Result<Json<UserResponse>> {
     payload

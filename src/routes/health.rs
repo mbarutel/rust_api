@@ -1,5 +1,7 @@
-use axum::{Json, Router, routing::get};
+use axum::{Json, Router, extract::State, routing::get};
 use serde::Serialize;
+
+use crate::state::AppState;
 
 pub fn router() -> Router<crate::state::AppState> {
     Router::new()
@@ -17,7 +19,7 @@ struct HealthResponse {
 // Basic health check
 async fn health() -> Json<HealthResponse> {
     Json(HealthResponse {
-        status: "healty",
+        status: "healthy",
         version: env!("CARGO_PKG_VERSION"),
     })
 }
@@ -27,15 +29,12 @@ async fn liveness() -> &'static str {
     "Ok"
 }
 
-// Kubernetes readiness probe - check dependencies
-// async fn readiness(
-//     State(state): State<crate::state::AppState>,
-// ) -> Result<&'static str, &'static str> {
-async fn readiness() -> Result<&'static str, &'static str> {
+// readiness probe - check dependencies
+async fn readiness(State(state): State<AppState>) -> Result<&'static str, &'static str> {
     // Check database connection
-    // if state.db.acquire().await.is_err() {
-    //      return Err("Database Unavailable");
-    // }
+    if state.db.acquire().await.is_err() {
+        return Err("Database Unavailable");
+    }
 
     Ok("Ok")
 }

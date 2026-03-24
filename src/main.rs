@@ -37,7 +37,9 @@ async fn main() {
     let config = Config::from_env();
 
     // Create application state
-    let state = AppState::new(&config).await;
+    let state = AppState::new(&config)
+        .await
+        .expect("Failed to initialize app state");
 
     // Build router with all routes and middleware
     let app = build_router(state);
