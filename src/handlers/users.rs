@@ -82,3 +82,91 @@ pub async fn list(
 
     Ok(Json(users))
 }
+
+// Create a new user
+#[tracing::instrument(skip(state, payload), fields(user.email = %payload.email))]
+pub async fn create(
+    State(state): State<AppState>,
+    Json(payload): Json<CreateUserRequest>,
+) -> Result<(StatusCode, Json<UserResponse>)> {
+    // Validate request
+    payload
+        .validate()
+        .map_err(|e| AppError::Validation(e.to_string()))?;
+
+    tracing::info!("Creating new user");
+
+    // Check for existing user
+    // if user_exists(&state.db, &payload.email).await? {
+    //   return Err(AppError::Conflict("Email already registered".to_string()));
+    // }
+
+    // Hash password and create user
+    let user = UserResponse {
+        id: Uuid::new_v4(),
+        email: payload.email,
+        name: payload.name,
+        created_at: chrono::Utc::now(),
+    };
+
+    tracing::info!(user.id = %user.id, "User created!");
+
+    Ok((StatusCode::CREATED, Json(user)))
+}
+
+// Get user by ID
+#[tracing::instrument(skip(state))]
+pub async fn get(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<UserResponse>> {
+    // Query user from database
+    // let user = find_user(&state.db, id).await?.ok_or(AppError::NotFound)?;
+
+    // Simulated response
+    let user = UserResponse {
+        id,
+        email: "user@example.com".to_string(),
+        name: "Example User".to_string(),
+        created_at: chrono::Utc::now(),
+    };
+
+    Ok(Json(user))
+}
+
+// Update user
+#[tracing::instrument(skip(state, payload))]
+pub async fn update(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdateUserRequest>,
+) -> Result<Json<UserResponse>> {
+    payload
+        .validate()
+        .map_err(|e| AppError::Validation(e.to_string()))?;
+
+    tracing::info!("Updating user");
+
+    // Update in database
+    let user = UserResponse {
+        id,
+        email: payload
+            .email
+            .unwrap_or_else(|| "user@example.com".to_string()),
+        name: payload.name.unwrap_or_else(|| "Updated User".to_string()),
+        created_at: chrono::Utc::now(),
+    };
+
+    Ok(Json(user))
+}
+
+// Delete user
+#[tracing::instrument(skip(state))]
+pub async fn delete(State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<StatusCode> {
+    tracing::info!("Deleting user");
+
+    // Delete from database
+    // delete_user(&state.db, id).await?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
