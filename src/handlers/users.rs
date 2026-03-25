@@ -77,13 +77,17 @@ pub async fn list(
         "Listing users"
     );
 
-    // In production query from database
-    let users = vec![UserResponse {
-        id: 1,
-        email: "user@example.com".to_string(),
-        name: "Example User".to_string(),
-        created_at: chrono::Utc::now(),
-    }];
+    let users = match sqlx::query_as!(
+        UserResponse,
+        "SELECT id, name, email, created_at FROM users",
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| AppError::Internal(e.into()))
+    {
+        Ok(users) => users,
+        Err(err) => return Err(err),
+    };
 
     Ok(Json(users))
 }
@@ -190,7 +194,7 @@ pub async fn update(
 
 // Delete user
 #[tracing::instrument(skip(state))]
-pub async fn delete(State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<StatusCode> {
+pub async fn delete(State(state): State<AppState>, Path(id): Path<u64>) -> Result<StatusCode> {
     tracing::info!("Deleting user");
 
     // Delete from database
