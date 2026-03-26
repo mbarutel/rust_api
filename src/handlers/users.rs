@@ -30,10 +30,8 @@ pub struct UserResponse {
 pub struct CreateUserRequest {
     #[validate(email(message = "Invalid email format"))]
     pub email: String,
-
     #[validate(length(min = 1, max = 100, message = "Name must be 1-100 characters"))]
     pub name: String,
-
     #[validate(length(min = 8, message = "Password must be at least 8 characters"))]
     pub password: String,
 }
@@ -43,7 +41,6 @@ pub struct CreateUserRequest {
 pub struct UpdateUserRequest {
     #[validate(email)]
     pub email: Option<String>,
-
     #[validate(length(min = 1, max = 100))]
     pub name: Option<String>,
 }
@@ -53,7 +50,6 @@ pub struct UpdateUserRequest {
 pub struct ListQuery {
     #[serde(default = "default_page")]
     pub page: u32,
-
     #[serde(default = "default_per_page")]
     pub per_page: u32,
 }
@@ -152,16 +148,14 @@ pub async fn create(
 // Get user by ID
 #[tracing::instrument(skip(state))]
 pub async fn get(State(state): State<AppState>, Path(id): Path<u64>) -> Result<Json<UserResponse>> {
-    // Query user from database
-    // let user = find_user(&state.db, id).await?.ok_or(AppError::NotFound)?;
-
-    // Simulated response
-    let user = UserResponse {
+    let user = sqlx::query_as!(
+        UserResponse,
+        "SELECT id, email, name, created_at FROM users WHERE id = ?",
         id,
-        email: "user@example.com".to_string(),
-        name: "Example User".to_string(),
-        created_at: chrono::Utc::now(),
-    };
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| AppError::Internal(e.into()))?;
 
     Ok(Json(user))
 }
