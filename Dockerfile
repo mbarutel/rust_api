@@ -16,4 +16,4 @@ COPY --from=builder /app/target/release/web-api /usr/local/bin/
 
 EXPOSE 3000
 
-CMD ["web-api"]
+CMD ["rust-api"]

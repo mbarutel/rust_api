@@ -7,7 +7,8 @@ edition = "2024"
 # Web Framework
 axum = { version = "0.8.8", features = ["macros"] }
 tokio = { version = "1.50.0", features = ["full"] }
-tower = { version = "0.5.3", features = ["timeout", "limit"] }
+tower = { version = "0.5.3", features = ["timeout", "limit", "util"] }
+http-body-util = "0.1"
 tower-http = { version = "0.6.8", features = [
   "cors",
   "trace",
@@ -36,6 +37,6 @@ uuid = { version = "1.22.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 axum-extra = { version = "0.12.5", features = ["typed-header"] }
 jsonwebtoken = "10.3.0"
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-native-tls", "mysql", "chrono"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-native-tls", "mysql", "chrono", "migrate"] }
 dotenvy = "0.15.7"
 argon2 = "0.5.3"

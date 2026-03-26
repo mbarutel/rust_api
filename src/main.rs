@@ -1,26 +1,7 @@
-mod config;
-mod error;
-mod handlers;
-mod middleware;
-mod models;
-mod routes;
-mod state;
-
-use axum::{Router, http::StatusCode};
-use std::{net::SocketAddr, time::Duration};
+use rust_api::{build_router, config::Config, state::AppState};
+use std::net::SocketAddr;
 use tokio::signal;
-use tower_http::{
-    compression::CompressionLayer,
-    cors::{Any, CorsLayer},
-    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
-    timeout::TimeoutLayer,
-    trace::TraceLayer,
-};
-
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-use crate::config::Config;
-use crate::state::AppState;
 
 #[tokio::main]
 async fn main() {
@@ -56,45 +37,6 @@ async fn main() {
         .unwrap();
 
     tracing::info!("Server shutdown complete");
-}
-
-// Build the application router with all middleware
-fn build_router(state: AppState) -> Router {
-    Router::new()
-        // Mount route modules
-        .merge(routes::health::router())
-        .merge(routes::users::router())
-        // Apply middle layers (order matters - bottom to top execution)
-        .layer(CompressionLayer::new())
-        .layer(
-            TraceLayer::new_for_http().make_span_with(|request: &axum::http::Request<_>| {
-                let request_id = request
-                    .headers()
-                    .get("x-request-id")
-                    .and_then(|v| v.to_str().ok())
-                    .unwrap_or("unknown");
-
-                tracing::info_span!(
-                    "http_request",
-                        method = %request.method(),
-                        uri =  %request.uri(),
-                        request_id = %request_id,
-                )
-            }),
-        )
-        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
-        .layer(PropagateRequestIdLayer::x_request_id())
-        .layer(TimeoutLayer::with_status_code(
-            StatusCode::REQUEST_TIMEOUT,
-            Duration::from_secs(30),
-        ))
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_methods(Any),
-        )
-        .with_state(state)
 }
 
 // Handle graceful shutdown signals
