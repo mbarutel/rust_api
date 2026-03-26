@@ -173,17 +173,54 @@ pub async fn update(
 
     tracing::info!("Updating user");
 
-    // Update in database
-    let user = UserResponse {
-        id,
-        email: payload
-            .email
-            .unwrap_or_else(|| "user@example.com".to_string()),
-        name: payload.name.unwrap_or_else(|| "Updated User".to_string()),
-        created_at: chrono::Utc::now(),
-    };
+    let mut set_clauses = Vec::new();
+    let mut bindings = Vec::new();
 
-    Ok(Json(user))
+    if let Some(name) = payload.name {
+        set_clauses.push("name = ?");
+        bindings.push(name)
+    }
+
+    if let Some(email) = payload.email {
+        set_clauses.push("email = ?");
+        bindings.push(email);
+    }
+
+    if set_clauses.is_empty() {
+        // Nothing to update, just return the current row
+        return sqlx::query_as!(
+            UserResponse,
+            "SELECT id, email, name, created_at FROM users WHERE id = ?",
+            id,
+        )
+        .fetch_one(&state.db)
+        .await
+        .map_err(|e| AppError::Internal(e.into()))
+        .map(Json);
+    }
+
+    let sql = format!("UPDATE users SET {} WHERE id = ?", set_clauses.join(", "));
+
+    let mut query = sqlx::query(&sql);
+    for binding in &bindings {
+        query = query.bind(binding);
+    }
+    query
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| AppError::Internal(e.into()))?;
+
+    // Fetch the updated row
+    sqlx::query_as!(
+        UserResponse,
+        "SELECT id, email, name, created_at FROM users WHERE id = ?",
+        id,
+    )
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| AppError::Internal(e.into()))
+    .map(Json)
 }
 
 // Delete user
