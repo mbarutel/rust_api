@@ -6,10 +6,8 @@ use axum::{
     Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use validator::Validate;
 
 use crate::error::{AppError, Result};
@@ -23,6 +21,7 @@ pub struct UserResponse {
     pub email: String,
     pub name: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 // Create user request with validation
@@ -75,7 +74,7 @@ pub async fn list(
 
     let users = match sqlx::query_as!(
         UserResponse,
-        "SELECT id, name, email, created_at FROM users",
+        "SELECT id, name, email, created_at, updated_at FROM users",
     )
     .fetch_all(&state.db)
     .await
@@ -123,10 +122,11 @@ pub async fn create(
     let now = chrono::Utc::now();
 
     let result = sqlx::query!(
-        "INSERT INTO users (email, name, password_hash, created_at) VALUES (?, ?, ?, ?)",
+        "INSERT INTO users (email, name, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
         payload.email,
         payload.name,
         password_hash,
+        now,
         now,
     )
     .execute(&state.db)
@@ -138,6 +138,7 @@ pub async fn create(
         email: payload.email,
         name: payload.name,
         created_at: now,
+        updated_at: now,
     };
 
     tracing::info!(user.id = %user.id, "User created!");
@@ -150,12 +151,15 @@ pub async fn create(
 pub async fn get(State(state): State<AppState>, Path(id): Path<u64>) -> Result<Json<UserResponse>> {
     let user = sqlx::query_as!(
         UserResponse,
-        "SELECT id, email, name, created_at FROM users WHERE id = ?",
+        "SELECT id, email, name, created_at, updated_at FROM users WHERE id = ?",
         id,
     )
     .fetch_one(&state.db)
     .await
-    .map_err(|e| AppError::Internal(e.into()))?;
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AppError::NotFound,
+        _ => AppError::Internal(e.into()),
+    })?;
 
     Ok(Json(user))
 }
@@ -190,12 +194,15 @@ pub async fn update(
         // Nothing to update, just return the current row
         return sqlx::query_as!(
             UserResponse,
-            "SELECT id, email, name, created_at FROM users WHERE id = ?",
+            "SELECT id, email, name, created_at, updated_at FROM users WHERE id = ?",
             id,
         )
         .fetch_one(&state.db)
         .await
-        .map_err(|e| AppError::Internal(e.into()))
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AppError::NotFound,
+            _ => AppError::Internal(e.into()),
+        })
         .map(Json);
     }
 
@@ -209,12 +216,15 @@ pub async fn update(
         .bind(id)
         .execute(&state.db)
         .await
-        .map_err(|e| AppError::Internal(e.into()))?;
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => AppError::NotFound,
+            _ => AppError::Internal(e.into()),
+        })?;
 
     // Fetch the updated row
     sqlx::query_as!(
         UserResponse,
-        "SELECT id, email, name, created_at FROM users WHERE id = ?",
+        "SELECT id, email, name, created_at, updated_at FROM users WHERE id = ?",
         id,
     )
     .fetch_one(&state.db)
@@ -228,8 +238,14 @@ pub async fn update(
 pub async fn delete(State(state): State<AppState>, Path(id): Path<u64>) -> Result<StatusCode> {
     tracing::info!("Deleting user");
 
-    // Delete from database
-    // delete_user(&state.db, id).await?;
+    let result = sqlx::query!("DELETE FROM users WHERE id = ?", id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| AppError::Internal(e.into()))?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::NotFound);
+    }
 
     Ok(StatusCode::NO_CONTENT)
 }

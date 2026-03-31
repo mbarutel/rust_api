@@ -1,12 +1,13 @@
 use crate::config::Config;
 use anyhow::Context;
-use std::sync::Arc;
+use sqlx::mysql::{MySqlPool, MySqlPoolOptions};
+use std::{sync::Arc, time::Duration};
 
 // Shared application state accessible in handlers
 #[derive(Clone)]
 pub struct AppState {
     pub config: Arc<Config>,
-    pub db: sqlx::MySqlPool,
+    pub db: MySqlPool,
     // Add database pool, cache client, etc.
     // pub redis: redis::Client
 }
@@ -14,7 +15,10 @@ pub struct AppState {
 impl AppState {
     pub async fn new(config: &Config) -> anyhow::Result<Self> {
         // Initialize database connections
-        let db = sqlx::MySqlPool::connect(&config.database_url)
+        let db = MySqlPoolOptions::new()
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(5))
+            .connect(&config.database_url)
             .await
             .context("Failed to connect to database")?;
 
