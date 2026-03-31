@@ -11,6 +11,7 @@ use axum::{
 
 use super::model::{CreateUserRequest, ListQuery, UpdateUserRequest, UserResponse};
 use super::repository;
+use crate::common::pagination::PaginatedResponse;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
 
@@ -19,14 +20,22 @@ pub async fn list(
     State(state): State<AppState>,
     _user: AuthUser,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<UserResponse>>> {
+) -> Result<Json<PaginatedResponse<UserResponse>>> {
     tracing::debug!(
         page = query.page,
         per_page = query.per_page,
         "Listing users"
     );
-    let users = repository::find_all(&state.db).await?;
-    Ok(Json(users))
+
+    let total = repository::count(&state.db).await?;
+    let users = repository::find_all(&state.db, query.page, query.per_page).await?;
+
+    Ok(Json(PaginatedResponse {
+        data: users,
+        page: query.page,
+        per_page: query.per_page,
+        total,
+    }))
 }
 
 #[tracing::instrument(skip(state, payload, _users), fields(user.email = %payload.email))]

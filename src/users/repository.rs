@@ -1,12 +1,25 @@
-use sqlx::MySqlPool;
+use sqlx::{MySqlPool, query_scalar};
 
 use super::model::UserResponse;
 use crate::error::{AppError, Result};
 
-pub async fn find_all(pool: &MySqlPool) -> Result<Vec<UserResponse>> {
+pub async fn count(pool: &MySqlPool) -> Result<u64> {
+    let count: i64 = query_scalar("SELECT COUNT(*) FROM users")
+        .fetch_one(pool)
+        .await
+        .map_err(|e| AppError::Internal(e.into()))?;
+
+    Ok(count as u64)
+}
+
+pub async fn find_all(pool: &MySqlPool, page: u32, per_page: u32) -> Result<Vec<UserResponse>> {
+    let offset = (page - 1) * per_page;
+
     sqlx::query_as!(
         UserResponse,
-        "SELECT id, name, email, created_at, updated_at FROM users",
+        "SELECT id, name, email, created_at, updated_at FROM users LIMIT ? OFFSET ?",
+        per_page,
+        offset,
     )
     .fetch_all(pool)
     .await

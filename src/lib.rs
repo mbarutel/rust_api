@@ -8,6 +8,7 @@ pub mod users;
 
 use axum::{Router, http::StatusCode};
 use std::time::Duration;
+use tower_governor::GovernorLayer;
 use tower_http::{
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
@@ -16,12 +17,13 @@ use tower_http::{
     trace::TraceLayer,
 };
 
-use crate::state::AppState;
+use crate::{middleware::rate_limiting::rate_limit_config, state::AppState};
 
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .merge(health::router())
         .merge(users::routes::router())
+        .layer(GovernorLayer::new(rate_limit_config()))
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &axum::http::Request<_>| {
