@@ -1,14 +1,13 @@
+pub mod common;
 pub mod config;
 pub mod error;
-pub mod handlers;
+pub mod health;
 pub mod middleware;
-pub mod models;
-pub mod routes;
 pub mod state;
+pub mod users;
 
 use axum::{Router, http::StatusCode};
-use std::{net::SocketAddr, time::Duration};
-use tokio::signal;
+use std::time::Duration;
 use tower_http::{
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
@@ -17,17 +16,12 @@ use tower_http::{
     trace::TraceLayer,
 };
 
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 use crate::state::AppState;
 
-// Build the application router with all middleware
 pub fn build_router(state: AppState) -> Router {
     Router::new()
-        // Mount route modules
-        .merge(routes::health::router())
-        .merge(routes::users::router())
-        // Apply middle layers (order matters - bottom to top execution)
+        .merge(health::router())
+        .merge(users::routes::router())
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &axum::http::Request<_>| {
@@ -39,9 +33,9 @@ pub fn build_router(state: AppState) -> Router {
 
                 tracing::info_span!(
                     "http_request",
-                        method = %request.method(),
-                        uri =  %request.uri(),
-                        request_id = %request_id,
+                    method = %request.method(),
+                    uri = %request.uri(),
+                    request_id = %request_id,
                 )
             }),
         )
