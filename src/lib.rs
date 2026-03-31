@@ -5,6 +5,7 @@ pub mod middleware;
 pub mod models;
 pub mod routes;
 pub mod state;
+pub mod users;
 
 use axum::{Router, http::StatusCode};
 use std::{net::SocketAddr, time::Duration};

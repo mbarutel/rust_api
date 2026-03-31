@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    http::{Request, StatusCode},
+    http::{Request, StatusCode, response},
 };
 
 use tower::ServiceExt;
@@ -41,6 +41,16 @@ async fn test_create_user() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::CREATED);
+}
+
+#[tokio::test]
+async fn test_delete_user() {
+    todo!()
+}
+
+#[tokio::test]
+async fn test_update_user() {
+    todo!()
 }
 
 #[tokio::test]
