@@ -31,7 +31,7 @@ pub struct UpdateUserRequest {
     pub name: Option<String>,
 }
 
-// Pagination query parameters
+// // Pagination query parameters
 #[derive(Deserialize, Debug)]
 pub struct ListQuery {
     #[serde(default = "default_page")]
