@@ -1,4 +1,7 @@
-use crate::middleware::{auth::AuthUser, validated_json::ValidateJson};
+use crate::{
+    middleware::{auth::AuthUser, validated_json::ValidateJson},
+    users::service,
+};
 use argon2::{
     Argon2, PasswordHasher,
     password_hash::{SaltString, rand_core::OsRng},
@@ -45,36 +48,7 @@ pub async fn create(
     ValidateJson(payload): ValidateJson<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>)> {
     tracing::info!("Creating new user");
-
-    if repository::email_exists(&state.db, &payload.email).await? {
-        return Err(AppError::Conflict("Email already registered".to_string()));
-    }
-
-    let salt = SaltString::generate(&mut OsRng);
-    let password_hash = Argon2::default()
-        .hash_password(payload.password.as_bytes(), &salt)
-        .map_err(|e| AppError::Internal(anyhow::Error::msg(e.to_string())))?
-        .to_string();
-
-    let now = chrono::Utc::now();
-    let id = repository::insert(
-        &state.db,
-        &payload.email,
-        &payload.name,
-        &password_hash,
-        now,
-    )
-    .await?;
-
-    let user = UserResponse {
-        id,
-        email: payload.email,
-        name: payload.name,
-        created_at: now,
-        updated_at: now,
-    };
-
-    tracing::info!(user.id = %user.id, "User created!");
+    let user = service::create_user(&state.db, payload).await?;
     Ok((StatusCode::CREATED, Json(user)))
 }
 
@@ -84,6 +58,7 @@ pub async fn get(
     _users: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<Json<UserResponse>> {
+    tracing::info!("Getting user");
     let user = repository::find_by_id(&state.db, id).await?;
     Ok(Json(user))
 }
