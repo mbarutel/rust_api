@@ -23,7 +23,7 @@ async fn main() {
         .expect("Failed to initialize app state");
 
     // Build router with all routes and middleware
-    let app = build_router(state);
+    let app = build_router(state, &config);
 
     // Start server with graceful shutdown
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
