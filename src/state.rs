@@ -1,4 +1,7 @@
-use crate::config::Config;
+use crate::{
+    config::Config,
+    users::service::{UserService, UserServiceImpl},
+};
 use anyhow::Context;
 use sqlx::mysql::{MySqlPool, MySqlPoolOptions};
 use std::{sync::Arc, time::Duration};
@@ -10,6 +13,7 @@ pub struct AppState {
     pub db: MySqlPool,
     // Add database pool, cache client, etc.
     // pub redis: redis::Client
+    pub user_service: Arc<dyn UserService>,
 }
 
 impl AppState {
@@ -28,7 +32,8 @@ impl AppState {
 
         Ok(Self {
             config: Arc::new(config.clone()),
-            db,
+            db: db.clone(),
+            user_service: Arc::new(UserServiceImpl::new(db)),
         })
     }
 }

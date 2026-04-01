@@ -3,37 +3,84 @@ use sqlx::MySqlPool;
 use crate::{
     error::{AppError, Result},
     users::{
-        model::{CreateUserRequest, UserResponse},
+        model::{CreateUserRequest, UpdateUserRequest, UserResponse},
         repository,
     },
 };
 
-pub async fn create_user(pool: &MySqlPool, payload: CreateUserRequest) -> Result<UserResponse> {
-    // Check for email uniqueness
-    if repository::email_exists(pool, &payload.email).await? {
-        return Err(AppError::Conflict("Email already registered".to_string()));
+#[async_trait::async_trait]
+pub trait UserService: Send + Sync {
+    async fn create(&self, payload: CreateUserRequest) -> Result<UserResponse>;
+    async fn list(&self, page: u32, per_page: u32) -> Result<(Vec<UserResponse>, u64)>;
+    async fn get(&self, id: u64) -> Result<UserResponse>;
+    async fn update(&self, id: u64, payload: UpdateUserRequest) -> Result<UserResponse>;
+    async fn delete(&self, id: u64) -> Result<bool>;
+}
+
+pub struct UserServiceImpl {
+    pool: MySqlPool,
+}
+
+impl UserServiceImpl {
+    pub fn new(pool: MySqlPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait::async_trait]
+impl UserService for UserServiceImpl {
+    async fn create(&self, payload: CreateUserRequest) -> Result<UserResponse> {
+        // Check for email uniqueness
+        if repository::email_exists(&self.pool, &payload.email).await? {
+            return Err(AppError::Conflict("Email already registered".to_string()));
+        }
+
+        // Hash password
+        let password_hash = hash_password(&payload.password)?;
+        //
+        // Insert user
+        let now = chrono::Utc::now();
+        let id = repository::insert(
+            &self.pool,
+            &payload.email,
+            &payload.name,
+            &password_hash,
+            now,
+        )
+        .await?;
+
+        // Send welcome email (future)
+        // email::send_welcome(&payload.email).await?;
+
+        // Create audit log (future)
+        // audit::log("user_created", id).await?;
+
+        Ok(UserResponse {
+            id,
+            email: payload.email,
+            name: payload.name,
+            created_at: now,
+            updated_at: now,
+        })
     }
 
-    // Hash password
-    let password_hash = hash_password(&payload.password)?;
-    //
-    // Insert user
-    let now = chrono::Utc::now();
-    let id = repository::insert(pool, &payload.email, &payload.name, &password_hash, now).await?;
+    async fn list(&self, page: u32, per_page: u32) -> Result<(Vec<UserResponse>, u64)> {
+        let total = repository::count(&self.pool).await?;
+        let users = repository::find_all(&self.pool, page, per_page).await?;
+        Ok((users, total))
+    }
 
-    // Send welcome email (future)
-    // email::send_welcome(&payload.email).await?;
+    async fn get(&self, id: u64) -> Result<UserResponse> {
+        repository::find_by_id(&self.pool, id).await
+    }
 
-    // Create audit log (future)
-    // audit::log("user_created", id).await?;
+    async fn update(&self, id: u64, payload: UpdateUserRequest) -> Result<UserResponse> {
+        repository::update(&self.pool, id, payload.email, payload.name).await
+    }
 
-    Ok(UserResponse {
-        id,
-        email: payload.email,
-        name: payload.name,
-        created_at: now,
-        updated_at: now,
-    })
+    async fn delete(&self, id: u64) -> Result<bool> {
+        repository::delete(&self.pool, id).await
+    }
 }
 
 fn hash_password(password: &str) -> Result<String> {

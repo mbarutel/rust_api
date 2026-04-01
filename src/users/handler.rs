@@ -1,11 +1,4 @@
-use crate::{
-    middleware::{auth::AuthUser, validated_json::ValidateJson},
-    users::service,
-};
-use argon2::{
-    Argon2, PasswordHasher,
-    password_hash::{SaltString, rand_core::OsRng},
-};
+use crate::middleware::{auth::AuthUser, validated_json::ValidateJson};
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -13,7 +6,6 @@ use axum::{
 };
 
 use super::model::{CreateUserRequest, ListQuery, UpdateUserRequest, UserResponse};
-use super::repository;
 use crate::common::pagination::PaginatedResponse;
 use crate::error::{AppError, Result};
 use crate::state::AppState;
@@ -30,8 +22,7 @@ pub async fn list(
         "Listing users"
     );
 
-    let total = repository::count(&state.db).await?;
-    let users = repository::find_all(&state.db, query.page, query.per_page).await?;
+    let (users, total) = state.user_service.list(query.page, query.per_page).await?;
 
     Ok(Json(PaginatedResponse {
         data: users,
@@ -48,7 +39,7 @@ pub async fn create(
     ValidateJson(payload): ValidateJson<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>)> {
     tracing::info!("Creating new user");
-    let user = service::create_user(&state.db, payload).await?;
+    let user = state.user_service.create(payload).await?;
     Ok((StatusCode::CREATED, Json(user)))
 }
 
@@ -59,7 +50,7 @@ pub async fn get(
     Path(id): Path<u64>,
 ) -> Result<Json<UserResponse>> {
     tracing::info!("Getting user");
-    let user = repository::find_by_id(&state.db, id).await?;
+    let user = state.user_service.get(id).await?;
     Ok(Json(user))
 }
 
@@ -71,7 +62,7 @@ pub async fn update(
     ValidateJson(payload): ValidateJson<UpdateUserRequest>,
 ) -> Result<Json<UserResponse>> {
     tracing::info!("Updating user");
-    let user = repository::update(&state.db, id, payload.email, payload.name).await?;
+    let user = state.user_service.update(id, payload).await?;
     Ok(Json(user))
 }
 
@@ -83,7 +74,7 @@ pub async fn delete(
 ) -> Result<StatusCode> {
     tracing::info!("Deleting user");
 
-    if !repository::delete(&state.db, id).await? {
+    if !state.user_service.delete(id).await? {
         return Err(AppError::NotFound);
     }
 

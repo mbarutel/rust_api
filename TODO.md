@@ -1,741 +1,273 @@
-# TODO: Upgrade Test Suite
+# TODO: Test Suite Restructuring
 
-## Step 1: Upgrade `tests/common/mod.rs` with auth helper and response parsing
-
-All handlers now require `AuthUser` (JWT). Tests need a helper to generate valid tokens, and a helper to parse response bodies.
-
-```rust
-use axum::Router;
-use axum::body::Body;
-use axum::http::Request;
-use http_body_util::BodyExt;
-use jsonwebtoken::{EncodingKey, Header, encode};
-use serde::de::DeserializeOwned;
-use uuid::Uuid;
-
-pub async fn build_test_app() -> Router {
-    dotenvy::dotenv().ok();
-    let config = rust_api::config::Config::from_env();
-    let state = rust_api::state::AppState::new(&config)
-        .await
-        .expect("Failed to create test app state");
-
-    sqlx::migrate!()
-        .run(&state.db)
-        .await
-        .expect("Failed to run migrations");
-
-    sqlx::query("DELETE FROM users")
-        .execute(&state.db)
-        .await
-        .expect("Failed to clean users table");
-
-    rust_api::build_router(state)
-}
-
-/// Generate a valid JWT for testing.
-/// Uses the same secret as config (JWT_SECRET env var or "development_secret" default).
-pub fn test_token() -> String {
-    let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "development_secret".to_string());
-
-    let claims = serde_json::json!({
-        "sub": Uuid::new_v4().to_string(),
-        "email": "testuser@example.com",
-        "iat": chrono::Utc::now().timestamp() as usize,
-        "exp": (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
-    });
-
-    encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(secret.as_bytes()),
-    )
-    .expect("Failed to create test JWT")
-}
-
-/// Build an authenticated GET request.
-pub fn auth_get(uri: &str) -> Request<Body> {
-    Request::builder()
-        .uri(uri)
-        .header("authorization", format!("Bearer {}", test_token()))
-        .body(Body::empty())
-        .unwrap()
-}
-
-/// Build an authenticated POST request with JSON body.
-pub fn auth_post(uri: &str, json: &str) -> Request<Body> {
-    Request::builder()
-        .method("POST")
-        .uri(uri)
-        .header("content-type", "application/json")
-        .header("authorization", format!("Bearer {}", test_token()))
-        .body(Body::from(json.to_string()))
-        .unwrap()
-}
-
-/// Build an authenticated PUT request with JSON body.
-pub fn auth_put(uri: &str, json: &str) -> Request<Body> {
-    Request::builder()
-        .method("PUT")
-        .uri(uri)
-        .header("content-type", "application/json")
-        .header("authorization", format!("Bearer {}", test_token()))
-        .body(Body::from(json.to_string()))
-        .unwrap()
-}
-
-/// Build an authenticated DELETE request.
-pub fn auth_delete(uri: &str) -> Request<Body> {
-    Request::builder()
-        .method("DELETE")
-        .uri(uri)
-        .header("authorization", format!("Bearer {}", test_token()))
-        .body(Body::empty())
-        .unwrap()
-}
-
-/// Parse response body as JSON into the given type.
-pub async fn parse_body<T: DeserializeOwned>(response: axum::http::Response<Body>) -> T {
-    let bytes = response.into_body().collect().await.unwrap().to_bytes();
-    serde_json::from_slice(&bytes).expect("Failed to parse response body")
-}
-```
-
-Note: you'll need these dev-dependencies in `Cargo.toml`:
-
-```toml
-[dev-dependencies]
-http-body-util = "0.1"
-```
-
-(`jsonwebtoken`, `uuid`, `chrono`, `serde_json`, `tower`, `tokio`, `axum`, `sqlx`, and `dotenvy` are already in your main dependencies and available to tests.)
+Goal: Prepare the codebase for both unit tests (no DB, fast) and integration tests (real DB). The service layer is the right abstraction boundary for mocking — the repository uses `sqlx::query_as!` macros (compile-time checked, not practical to trait-ify).
 
 ---
 
-## Step 2: Expand `tests/health_test.rs`
+## Step 1: Complete the Service Layer
 
-Add tests for liveness and readiness probes, and verify the response body content.
+Handlers currently bypass the service layer for `get`, `list`, `update`, `delete` — calling `repository::*` directly. All handler logic must go through the service layer first.
+
+**`src/users/service.rs`** — Add these functions (thin wrappers over repository):
 
 ```rust
-mod common;
-
-use axum::http::StatusCode;
-use axum::{body::Body, http::Request};
-use serde_json::Value;
-use tower::ServiceExt;
-
-#[tokio::test]
-async fn test_health_check() {
-    let app = common::build_test_app().await;
-
-    let response = app
-        .oneshot(
-            Request::builder()
-                .uri("/health")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["status"], "healthy");
-    assert!(body["version"].is_string());
+pub async fn list_users(pool: &MySqlPool, page: u32, per_page: u32) -> Result<(Vec<UserResponse>, u64)> {
+    let total = repository::count(pool).await?;
+    let users = repository::find_all(pool, page, per_page).await?;
+    Ok((users, total))
 }
 
-#[tokio::test]
-async fn test_liveness_probe() {
-    let app = common::build_test_app().await;
-
-    let response = app
-        .oneshot(
-            Request::builder()
-                .uri("/health/live")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
+pub async fn get_user(pool: &MySqlPool, id: u64) -> Result<UserResponse> {
+    repository::find_by_id(pool, id).await
 }
 
-#[tokio::test]
-async fn test_readiness_probe() {
-    let app = common::build_test_app().await;
+pub async fn update_user(pool: &MySqlPool, id: u64, email: Option<String>, name: Option<String>) -> Result<UserResponse> {
+    repository::update(pool, id, email, name).await
+}
 
-    let response = app
-        .oneshot(
-            Request::builder()
-                .uri("/health/ready")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
+pub async fn delete_user(pool: &MySqlPool, id: u64) -> Result<bool> {
+    repository::delete(pool, id).await
 }
 ```
 
+**`src/users/handler.rs`** — Update `list`, `get`, `update`, `delete` to call `service::*` instead of `repository::*`. Remove `use super::repository;`.
+
+This is a pure refactor — no behavior change. All existing integration tests should still pass.
+
 ---
 
-## Step 3: Rewrite `tests/user_tests.rs`
+## Step 2: Introduce a `UserService` Trait
 
-Replace the file entirely. This covers all CRUD operations, validation, auth, conflict, not-found, and pagination.
+Edition 2024 supports native async trait methods — no `async-trait` crate needed.
+
+**`src/users/service.rs`** — Define trait and implementation:
 
 ```rust
-mod common;
-
-use axum::http::StatusCode;
-use serde_json::Value;
-use tower::ServiceExt;
-
-// ---------------------------------------------------------------------------
-// Auth
-// ---------------------------------------------------------------------------
-
-#[tokio::test]
-async fn test_unauthenticated_request_returns_401() {
-    use axum::{body::Body, http::Request};
-
-    let app = common::build_test_app().await;
-
-    // Request with no Authorization header
-    let response = app
-        .oneshot(
-            Request::builder()
-                .uri("/api/users")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+pub trait UserService: Send + Sync {
+    async fn create(&self, payload: CreateUserRequest) -> Result<UserResponse>;
+    async fn list(&self, page: u32, per_page: u32) -> Result<(Vec<UserResponse>, u64)>;
+    async fn get(&self, id: u64) -> Result<UserResponse>;
+    async fn update(&self, id: u64, email: Option<String>, name: Option<String>) -> Result<UserResponse>;
+    async fn delete(&self, id: u64) -> Result<bool>;
 }
 
-// ---------------------------------------------------------------------------
-// Create
-// ---------------------------------------------------------------------------
-
-#[tokio::test]
-async fn test_create_user() {
-    let app = common::build_test_app().await;
-
-    let response = app
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"test@example.com","name":"Test User","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::CREATED);
-
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["email"], "test@example.com");
-    assert_eq!(body["name"], "Test User");
-    assert!(body["id"].is_number());
-    assert!(body["created_at"].is_string());
-    assert!(body["updated_at"].is_string());
+pub struct UserServiceImpl {
+    pool: MySqlPool,
 }
 
-#[tokio::test]
-async fn test_create_user_duplicate_email() {
-    let app = common::build_test_app().await;
-
-    // Create first user
-    let _ = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"dupe@example.com","name":"First","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    // Attempt duplicate
-    let response = app
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"dupe@example.com","name":"Second","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::CONFLICT);
+impl UserServiceImpl {
+    pub fn new(pool: MySqlPool) -> Self {
+        Self { pool }
+    }
 }
 
-// ---------------------------------------------------------------------------
-// Validation
-// ---------------------------------------------------------------------------
-
-#[tokio::test]
-async fn test_create_user_invalid_email() {
-    let app = common::build_test_app().await;
-
-    let response = app
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"not-an-email","name":"Test","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+impl UserService for UserServiceImpl {
+    async fn create(&self, payload: CreateUserRequest) -> Result<UserResponse> {
+        // Move existing create_user body here, using self.pool
+    }
+    async fn list(&self, page: u32, per_page: u32) -> Result<(Vec<UserResponse>, u64)> {
+        // Move list_users body here
+    }
+    // ... same for get, update, delete
 }
+```
 
-#[tokio::test]
-async fn test_create_user_short_password() {
-    let app = common::build_test_app().await;
+**`src/state.rs`** — Add service to AppState:
 
-    let response = app
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"test@example.com","name":"Test","password":"short"}"#,
-        ))
-        .await
-        .unwrap();
+```rust
+use std::sync::Arc;
+use crate::users::service::UserService;
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+#[derive(Clone)]
+pub struct AppState {
+    pub config: Arc<Config>,
+    pub db: MySqlPool,
+    pub user_service: Arc<dyn UserService>,
 }
+```
 
-#[tokio::test]
-async fn test_create_user_empty_name() {
-    let app = common::build_test_app().await;
+**`src/users/handler.rs`** — Use `state.user_service.*()` instead of `service::*(&state.db, ...)`:
 
-    let response = app
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"test@example.com","name":"","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+```rust
+pub async fn create(
+    State(state): State<AppState>,
+    _users: AuthUser,
+    ValidateJson(payload): ValidateJson<CreateUserRequest>,
+) -> Result<(StatusCode, Json<UserResponse>)> {
+    let user = state.user_service.create(payload).await?;
+    Ok((StatusCode::CREATED, Json(user)))
 }
+```
 
-#[tokio::test]
-async fn test_create_user_missing_fields() {
-    let app = common::build_test_app().await;
+**`src/main.rs`** — Construct `UserServiceImpl` when building state.
 
-    let response = app
-        .oneshot(common::auth_post("/api/users", r#"{"email":"test@example.com"}"#))
-        .await
-        .unwrap();
+**`tests/common/mod.rs`** — Construct `UserServiceImpl` in `build_test_app()`.
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-}
+---
 
-#[tokio::test]
-async fn test_create_user_invalid_json() {
-    let app = common::build_test_app().await;
+## Step 3: Add Unit Tests (inline `#[cfg(test)]` modules)
 
-    let response = app
-        .oneshot(common::auth_post("/api/users", r#"not json"#))
-        .await
-        .unwrap();
+### 3a. Model validation — `src/users/model.rs`
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-}
+Quick win, no refactoring needed. Pure synchronous tests:
 
-// ---------------------------------------------------------------------------
-// Get
-// ---------------------------------------------------------------------------
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use validator::Validate;
 
-#[tokio::test]
-async fn test_get_user() {
-    let app = common::build_test_app().await;
-
-    // Create a user first
-    let create_resp = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"get@example.com","name":"Get Test","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    let created: Value = common::parse_body(create_resp).await;
-    let id = created["id"].as_u64().unwrap();
-
-    // Fetch it
-    let response = app
-        .oneshot(common::auth_get(&format!("/api/users/{}", id)))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["email"], "get@example.com");
-    assert_eq!(body["name"], "Get Test");
-}
-
-#[tokio::test]
-async fn test_get_user_not_found() {
-    let app = common::build_test_app().await;
-
-    let response = app
-        .oneshot(common::auth_get("/api/users/999999"))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-}
-
-// ---------------------------------------------------------------------------
-// Update
-// ---------------------------------------------------------------------------
-
-#[tokio::test]
-async fn test_update_user_name() {
-    let app = common::build_test_app().await;
-
-    // Create
-    let create_resp = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"update@example.com","name":"Old Name","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    let created: Value = common::parse_body(create_resp).await;
-    let id = created["id"].as_u64().unwrap();
-
-    // Update name only
-    let response = app
-        .oneshot(common::auth_put(
-            &format!("/api/users/{}", id),
-            r#"{"name":"New Name"}"#,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["name"], "New Name");
-    assert_eq!(body["email"], "update@example.com"); // unchanged
-}
-
-#[tokio::test]
-async fn test_update_user_email() {
-    let app = common::build_test_app().await;
-
-    let create_resp = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"old@example.com","name":"Test","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    let created: Value = common::parse_body(create_resp).await;
-    let id = created["id"].as_u64().unwrap();
-
-    let response = app
-        .oneshot(common::auth_put(
-            &format!("/api/users/{}", id),
-            r#"{"email":"new@example.com"}"#,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["email"], "new@example.com");
-    assert_eq!(body["name"], "Test"); // unchanged
-}
-
-#[tokio::test]
-async fn test_update_user_empty_body() {
-    let app = common::build_test_app().await;
-
-    let create_resp = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"empty@example.com","name":"Test","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    let created: Value = common::parse_body(create_resp).await;
-    let id = created["id"].as_u64().unwrap();
-
-    // Empty update — should return current user unchanged
-    let response = app
-        .oneshot(common::auth_put(&format!("/api/users/{}", id), r#"{}"#))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["email"], "empty@example.com");
-}
-
-#[tokio::test]
-async fn test_update_user_not_found() {
-    let app = common::build_test_app().await;
-
-    let response = app
-        .oneshot(common::auth_put(
-            "/api/users/999999",
-            r#"{"name":"Ghost"}"#,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-}
-
-#[tokio::test]
-async fn test_update_user_invalid_email() {
-    let app = common::build_test_app().await;
-
-    let create_resp = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"valid@example.com","name":"Test","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    let created: Value = common::parse_body(create_resp).await;
-    let id = created["id"].as_u64().unwrap();
-
-    let response = app
-        .oneshot(common::auth_put(
-            &format!("/api/users/{}", id),
-            r#"{"email":"not-valid"}"#,
-        ))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-}
-
-// ---------------------------------------------------------------------------
-// Delete
-// ---------------------------------------------------------------------------
-
-#[tokio::test]
-async fn test_delete_user() {
-    let app = common::build_test_app().await;
-
-    // Create
-    let create_resp = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"delete@example.com","name":"Delete Me","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    let created: Value = common::parse_body(create_resp).await;
-    let id = created["id"].as_u64().unwrap();
-
-    // Delete
-    let response = app
-        .clone()
-        .oneshot(common::auth_delete(&format!("/api/users/{}", id)))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::NO_CONTENT);
-
-    // Confirm it's gone
-    let get_resp = app
-        .oneshot(common::auth_get(&format!("/api/users/{}", id)))
-        .await
-        .unwrap();
-
-    assert_eq!(get_resp.status(), StatusCode::NOT_FOUND);
-}
-
-#[tokio::test]
-async fn test_delete_user_not_found() {
-    let app = common::build_test_app().await;
-
-    let response = app
-        .oneshot(common::auth_delete("/api/users/999999"))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-}
-
-// ---------------------------------------------------------------------------
-// List / Pagination
-// ---------------------------------------------------------------------------
-
-#[tokio::test]
-async fn test_list_users_empty() {
-    let app = common::build_test_app().await;
-
-    let response = app
-        .oneshot(common::auth_get("/api/users"))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["data"].as_array().unwrap().len(), 0);
-    assert_eq!(body["total"], 0);
-    assert_eq!(body["page"], 1);
-    assert_eq!(body["per_page"], 10);
-}
-
-#[tokio::test]
-async fn test_list_users_returns_created_users() {
-    let app = common::build_test_app().await;
-
-    // Create two users
-    let _ = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"list1@example.com","name":"User One","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    let _ = app
-        .clone()
-        .oneshot(common::auth_post(
-            "/api/users",
-            r#"{"email":"list2@example.com","name":"User Two","password":"password123"}"#,
-        ))
-        .await
-        .unwrap();
-
-    let response = app
-        .oneshot(common::auth_get("/api/users"))
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["data"].as_array().unwrap().len(), 2);
-    assert_eq!(body["total"], 2);
-}
-
-#[tokio::test]
-async fn test_list_users_pagination() {
-    let app = common::build_test_app().await;
-
-    // Create 3 users
-    for i in 1..=3 {
-        let _ = app
-            .clone()
-            .oneshot(common::auth_post(
-                "/api/users",
-                &format!(
-                    r#"{{"email":"page{}@example.com","name":"User {}","password":"password123"}}"#,
-                    i, i
-                ),
-            ))
-            .await
-            .unwrap();
+    #[test]
+    fn valid_create_request() {
+        let req = CreateUserRequest {
+            email: "test@example.com".into(),
+            name: "Test".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_ok());
     }
 
-    // Page 1, per_page=2 — should get 2 users
-    let response = app
-        .clone()
-        .oneshot(common::auth_get("/api/users?page=1&per_page=2"))
-        .await
-        .unwrap();
+    #[test]
+    fn invalid_email_rejected() {
+        let req = CreateUserRequest {
+            email: "not-an-email".into(),
+            name: "Test".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_err());
+    }
 
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["data"].as_array().unwrap().len(), 2);
-    assert_eq!(body["total"], 3);
-    assert_eq!(body["page"], 1);
-    assert_eq!(body["per_page"], 2);
+    #[test]
+    fn short_password_rejected() {
+        let req = CreateUserRequest {
+            email: "test@example.com".into(),
+            name: "Test".into(),
+            password: "short".into(),
+        };
+        assert!(req.validate().is_err());
+    }
 
-    // Page 2, per_page=2 — should get 1 user
-    let response = app
-        .oneshot(common::auth_get("/api/users?page=2&per_page=2"))
-        .await
-        .unwrap();
+    #[test]
+    fn empty_name_rejected() {
+        let req = CreateUserRequest {
+            email: "test@example.com".into(),
+            name: "".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_err());
+    }
 
-    let body: Value = common::parse_body(response).await;
-    assert_eq!(body["data"].as_array().unwrap().len(), 1);
-    assert_eq!(body["total"], 3);
-    assert_eq!(body["page"], 2);
+    #[test]
+    fn update_invalid_email_rejected() {
+        let req = UpdateUserRequest {
+            email: Some("not-valid".into()),
+            name: None,
+        };
+        assert!(req.validate().is_err());
+    }
 }
 ```
 
+### 3b. Handler unit tests — `src/users/handler.rs`
+
+Build a `MockUserService` implementing the trait, inject into `AppState`, use `oneshot()`. No DB needed:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use axum::{body::Body, http::Request, Router};
+    use tower::ServiceExt;
+
+    struct MockUserService {
+        // Control return values per-method
+    }
+
+    impl UserService for MockUserService {
+        async fn create(&self, _payload: CreateUserRequest) -> Result<UserResponse> {
+            // Return controlled result
+        }
+        // ... other methods
+    }
+
+    fn test_app(service: MockUserService) -> Router {
+        let state = AppState {
+            config: Arc::new(Config::from_env()),
+            db: /* unused, can be a dummy */,
+            user_service: Arc::new(service),
+        };
+        crate::build_router(state)
+    }
+
+    #[tokio::test]
+    async fn create_returns_201_on_success() { ... }
+
+    #[tokio::test]
+    async fn create_returns_409_on_conflict() { ... }
+
+    #[tokio::test]
+    async fn get_returns_404_when_not_found() { ... }
+
+    #[tokio::test]
+    async fn delete_returns_204_on_success() { ... }
+}
+```
+
+### 3c. Auth middleware — `src/middleware/auth.rs`
+
+Extract JWT decode logic into a testable helper function, then test:
+- Valid token decodes correctly
+- Expired token rejected
+- Malformed token rejected
+
 ---
 
-## Step 4: Add `http-body-util` as a dev dependency
+## Step 4: Rename Integration Test Files (optional clarity)
 
-Add to `Cargo.toml`:
+- `tests/health_test.rs` -> `tests/health_integration.rs`
+- `tests/user_tests.rs` -> `tests/user_integration.rs`
+
+---
+
+## Step 5: Add Cargo Aliases
+
+**`.cargo/config.toml`:**
 
 ```toml
-[dev-dependencies]
-http-body-util = "0.1"
+[alias]
+unit = "test --lib"
+integration = "test --test '*'"
 ```
-
-This is used by `parse_body()` in the test helpers. (`http-body-util` is already in your main deps, but it's good practice to also list it in dev-deps if you want to eventually remove it from main.)
 
 ---
 
-## Step 5: Verify
+## Running Tests
 
-```bash
-cargo test         # all tests pass?
-cargo test -- --list   # see all test names
-```
+| Command              | What it runs               | DB required? |
+|----------------------|----------------------------|--------------|
+| `cargo unit`         | `#[cfg(test)]` modules     | No           |
+| `cargo integration`  | `tests/*.rs` files         | Yes          |
+| `cargo test`         | Everything                 | Yes          |
 
-### Expected test count: 20
+---
 
-**Health (3):**
-- `test_health_check`
-- `test_liveness_probe`
-- `test_readiness_probe`
+## Implementation Order
 
-**Auth (1):**
-- `test_unauthenticated_request_returns_401`
+1. **Step 1** — Complete service layer (pure refactor, tests still pass)
+2. **Step 3a** — Add model validation unit tests (quick win, independent)
+3. **Step 2** — Introduce `UserService` trait + update AppState/handlers
+4. **Step 3b** — Add handler unit tests with mock service
+5. **Step 3c** — Add auth unit tests
+6. **Step 4 & 5** — Rename files, add aliases
 
-**Create (5):**
-- `test_create_user`
-- `test_create_user_duplicate_email`
-- `test_create_user_invalid_email`
-- `test_create_user_short_password`
-- `test_create_user_empty_name`
-- `test_create_user_missing_fields`
-- `test_create_user_invalid_json`
+Each step leaves the project in a compiling, working state.
 
-**Get (2):**
-- `test_get_user`
-- `test_get_user_not_found`
+---
 
-**Update (5):**
-- `test_update_user_name`
-- `test_update_user_email`
-- `test_update_user_empty_body`
-- `test_update_user_not_found`
-- `test_update_user_invalid_email`
+## What NOT to do
 
-**Delete (2):**
-- `test_delete_user`
-- `test_delete_user_not_found`
-
-**List/Pagination (3):**
-- `test_list_users_empty`
-- `test_list_users_returns_created_users`
-- `test_list_users_pagination`
+- **Don't trait-ify the repository layer** — `query_as!` macros return concrete types, wrapping in a trait defeats compile-time SQL checking
+- **Don't add `async-trait` crate** — edition 2024 supports native async methods in traits
+- **Don't restructure `tests/` into subdirectories yet** — with only 2 test files the flat structure is fine. Revisit at 5+ modules
+- **Don't create separate `src/test_helpers.rs` yet** — start with inline `#[cfg(test)]`, extract when duplication appears across 3+ modules
