@@ -1,8 +1,4 @@
-use axum::{
-    RequestPartsExt,
-    extract::FromRequestParts,
-    http::{StatusCode, request::Parts},
-};
+use axum::{RequestPartsExt, extract::FromRequestParts, http::request::Parts};
 use axum_extra::{
     TypedHeader,
     headers::{Authorization, authorization::Bearer},

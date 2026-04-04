@@ -1,6 +1,6 @@
+use axum::Router;
 use axum::body::Body;
 use axum::http::Request;
-use axum::{Router, http::header};
 use http_body_util::BodyExt;
 use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::de::DeserializeOwned;
@@ -13,14 +13,15 @@ pub async fn build_test_app() -> Router {
         .await
         .expect("Failed to create test app state");
     config.rate_limiting = false;
+    let pool = state.db.as_ref().unwrap();
 
     sqlx::migrate!()
-        .run(&state.db)
+        .run(pool)
         .await
         .expect("Failed to run migrations");
 
     sqlx::query("DELETE FROM users")
-        .execute(&state.db)
+        .execute(pool)
         .await
         .expect("Failed to clean users table");
 
