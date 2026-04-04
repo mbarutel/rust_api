@@ -12,7 +12,7 @@ pub fn test_config() -> Config {
         rate_limiting: false,
         environment: "test".into(),
         database_url: String::new(),
-        jwt_secret: "test_secret".into(),
+        jwt_secret: "development_secret".into(),
     }
 }
 

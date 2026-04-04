@@ -93,9 +93,11 @@ mod tests {
     use std::sync::Arc;
     use tower::ServiceExt;
 
+    type ListResponse = (Vec<UserResponse>, u64);
+
     pub struct MockUserService {
         create_fn: Box<dyn Fn(CreateUserRequest) -> Result<UserResponse> + Send + Sync>,
-        list_fn: Box<dyn Fn(u32, u32) -> Result<(Vec<UserResponse>, u64)> + Send + Sync>,
+        list_fn: Box<dyn Fn(u32, u32) -> Result<ListResponse> + Send + Sync>,
         get_fn: Box<dyn Fn(u64) -> Result<UserResponse> + Send + Sync>,
         update_fn: Box<dyn Fn(u64, UpdateUserRequest) -> Result<UserResponse> + Send + Sync>,
         delete_fn: Box<dyn Fn(u64) -> Result<bool> + Send + Sync>,
@@ -207,7 +209,7 @@ mod tests {
 
         assert_eq!(resp.status(), StatusCode::OK);
         let user: UserResponse = parse_body(resp).await;
-        assert_eq!(user.email, "test@user.com");
+        assert_eq!(user.email, "test@example.com");
     }
 
     #[tokio::test]
