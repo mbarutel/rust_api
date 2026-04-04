@@ -1,4 +1,4 @@
-use axum::Router;
+use crate::Config;
 use axum::body::Body;
 use axum::http::Request;
 use http_body_util::BodyExt;
@@ -6,30 +6,16 @@ use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::de::DeserializeOwned;
 use uuid::Uuid;
 
-pub async fn build_test_app() -> Router {
-    dotenvy::dotenv().ok();
-    let mut config = rust_api::config::Config::from_env();
-    let state = rust_api::state::AppState::new(&config)
-        .await
-        .expect("Failed to create test app state");
-    config.rate_limiting = false;
-    let pool = state.db.as_ref().unwrap();
-
-    sqlx::migrate!()
-        .run(pool)
-        .await
-        .expect("Failed to run migrations");
-
-    sqlx::query("DELETE FROM users")
-        .execute(pool)
-        .await
-        .expect("Failed to clean users table");
-
-    rust_api::build_router(state, &config)
+pub fn test_config() -> Config {
+    Config {
+        port: 3000,
+        rate_limiting: false,
+        environment: "test".into(),
+        database_url: String::new(),
+        jwt_secret: "development_secret".into(),
+    }
 }
 
-// Generate a valid JWT for testing.
-// Uses the same secret as config (JWT_SECRET env var or "development_secret" default).
 pub fn test_token() -> String {
     let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "development_secret".to_string());
 

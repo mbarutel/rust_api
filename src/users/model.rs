@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct UserResponse {
     pub id: u64,
     pub email: String,
@@ -45,4 +45,59 @@ fn default_page() -> u32 {
 }
 fn default_per_page() -> u32 {
     10
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use validator::Validate;
+
+    #[test]
+    fn valid_create_request() {
+        let req = CreateUserRequest {
+            email: "test@example.com".into(),
+            name: "Test".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_ok());
+    }
+
+    #[test]
+    fn invalid_email_rejected() {
+        let req = CreateUserRequest {
+            email: "not-an-email".into(),
+            name: "Test".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_err())
+    }
+
+    #[test]
+    fn short_password_rejected() {
+        let req = CreateUserRequest {
+            email: "test@example.com".into(),
+            name: "Test".into(),
+            password: "short".into(),
+        };
+        assert!(req.validate().is_err());
+    }
+
+    #[test]
+    fn empty_name_rejected() {
+        let req = CreateUserRequest {
+            email: "test@example.com".into(),
+            name: "".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_err());
+    }
+
+    #[test]
+    fn update_invalid_email_rejected() {
+        let req = UpdateUserRequest {
+            email: Some("not-an-email".into()),
+            name: None,
+        };
+        assert!(req.validate().is_err());
+    }
 }

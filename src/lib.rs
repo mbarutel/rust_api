@@ -4,6 +4,7 @@ pub mod error;
 pub mod health;
 pub mod middleware;
 pub mod state;
+pub mod test_helpers;
 pub mod users;
 
 use axum::{Router, http::StatusCode};
@@ -17,13 +18,20 @@ use tower_http::{
     trace::TraceLayer,
 };
 
-use crate::{middleware::rate_limiting::rate_limit_config, state::AppState};
+use crate::{config::Config, middleware::rate_limiting::rate_limit_config, state::AppState};
 
-pub fn build_router(state: AppState) -> Router {
-    Router::new()
+pub fn build_router(state: AppState, config: &Config) -> Router {
+    let router = Router::new()
         .merge(health::router())
-        .merge(users::routes::router())
-        .layer(GovernorLayer::new(rate_limit_config()))
+        .merge(users::routes::router());
+
+    let router = if config.rate_limiting {
+        router.layer(GovernorLayer::new(rate_limit_config()))
+    } else {
+        router
+    };
+
+    router
         .layer(CompressionLayer::new())
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &axum::http::Request<_>| {
