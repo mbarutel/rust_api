@@ -4,6 +4,7 @@ pub mod error;
 pub mod health;
 pub mod middleware;
 pub mod state;
+pub mod test_helpers;
 pub mod users;
 
 use axum::{Router, http::StatusCode};

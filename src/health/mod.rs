@@ -32,9 +32,19 @@ async fn liveness() -> &'static str {
 // readiness probe - check dependencies
 async fn readiness(State(state): State<AppState>) -> Result<&'static str, &'static str> {
     // Check database connection
-    if state.db.acquire().await.is_err() {
-        return Err("Database Unavailable");
-    }
+    // if Some(state.db).acquire().await.is_err() {
+    //     return Err("Database Unavailable");
+    // }
+    //
+    // Ok("Ok")
+    match state.db {
+        Some(db) => {
+            if db.acquire().await.is_err() {
+                return Err("Database Unavailable");
+            }
 
-    Ok("Ok")
+            Ok("Ok")
+        }
+        None => Err("Database Non Initialized"),
+    }
 }

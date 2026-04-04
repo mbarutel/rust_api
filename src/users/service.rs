@@ -30,14 +30,13 @@ impl UserServiceImpl {
 #[async_trait::async_trait]
 impl UserService for UserServiceImpl {
     async fn create(&self, payload: CreateUserRequest) -> Result<UserResponse> {
-        // Check for email uniqueness
         if repository::email_exists(&self.pool, &payload.email).await? {
             return Err(AppError::Conflict("Email already registered".to_string()));
         }
 
         // Hash password
         let password_hash = hash_password(&payload.password)?;
-        //
+
         // Insert user
         let now = chrono::Utc::now();
         let id = repository::insert(
@@ -48,12 +47,6 @@ impl UserService for UserServiceImpl {
             now,
         )
         .await?;
-
-        // Send welcome email (future)
-        // email::send_welcome(&payload.email).await?;
-
-        // Create audit log (future)
-        // audit::log("user_created", id).await?;
 
         Ok(UserResponse {
             id,

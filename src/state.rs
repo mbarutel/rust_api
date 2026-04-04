@@ -6,12 +6,16 @@ use anyhow::Context;
 use sqlx::mysql::{MySqlPool, MySqlPoolOptions};
 use std::{sync::Arc, time::Duration};
 
-// Shared application state accessible in handlers
 #[derive(Clone)]
 pub struct AppState {
     pub config: Arc<Config>,
-    pub db: MySqlPool,
-    // Add database pool, cache client, etc.
+
+    // NOTE: At the moment, this seems to be redudant because the service will
+    // have their own access to the db. There needs to be a smarter way of what struct holds the
+    // database connection.
+    pub db: Option<MySqlPool>,
+
+    // NOTE: When we need to add cacheing
     // pub redis: redis::Client
     pub user_service: Arc<dyn UserService>,
 }
@@ -32,7 +36,7 @@ impl AppState {
 
         Ok(Self {
             config: Arc::new(config.clone()),
-            db: db.clone(),
+            db: Some(db.clone()),
             user_service: Arc::new(UserServiceImpl::new(db)),
         })
     }
