@@ -1,6 +1,7 @@
 use sqlx::MySqlPool;
 
 use crate::{
+    common::password::hash_password,
     error::{AppError, Result},
     users::{
         model::{CreateUserRequest, UpdateUserRequest, UserResponse},
@@ -74,17 +75,4 @@ impl UserService for UserServiceImpl {
     async fn delete(&self, id: u64) -> Result<bool> {
         repository::delete(&self.pool, id).await
     }
-}
-
-fn hash_password(password: &str) -> Result<String> {
-    use argon2::{
-        Argon2, PasswordHasher,
-        password_hash::{SaltString, rand_core::OsRng},
-    };
-
-    let salt = SaltString::generate(&mut OsRng);
-    Argon2::default()
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| AppError::Internal(anyhow::Error::msg(e.to_string())))
-        .map(|h| h.to_string())
 }

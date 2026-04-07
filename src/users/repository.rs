@@ -1,7 +1,10 @@
 use sqlx::{MySqlPool, query_scalar};
 
 use super::model::UserResponse;
-use crate::error::{AppError, Result};
+use crate::{
+    error::{AppError, Result},
+    users::model::UserRow,
+};
 
 pub async fn count(pool: &MySqlPool) -> Result<u64> {
     let count: i64 = query_scalar("SELECT COUNT(*) FROM users")
@@ -31,6 +34,20 @@ pub async fn find_by_id(pool: &MySqlPool, id: u64) -> Result<UserResponse> {
         UserResponse,
         "SELECT id, email, name, created_at, updated_at FROM users WHERE id = ?",
         id,
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(|e| match e {
+        sqlx::Error::RowNotFound => AppError::NotFound,
+        _ => AppError::Internal(e.into()),
+    })
+}
+
+pub async fn find_by_email(pool: &MySqlPool, email: &String) -> Result<UserRow> {
+    sqlx::query_as!(
+        UserRow,
+        "SELECT id, email, name, password_hash, created_at, updated_at FROM users WHERE email = ?",
+        email,
     )
     .fetch_one(pool)
     .await

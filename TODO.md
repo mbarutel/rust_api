@@ -1,128 +1,242 @@
-# Auth Module Implementation Guide
+# Split AppState into Sub-States (Pattern 2)
 
-Follow the same pattern as the `users` module (`src/users/`).
+## Problem
 
-## New Files
+`AppState` is a monolithic struct. Adding `auth_service` forces every test that constructs
+`AppState` (e.g. user handler tests) to also provide an `AuthService`, even when irrelevant.
 
-### `src/auth/mod.rs`
+## Goal
 
-- Declare submodules: `model`, `routes`, `handler`, `service`
+Each route group gets its own state type containing only what it needs. The `AuthUser`
+extractor works with any state that provides JWT config via a trait bound.
 
-### `src/auth/model.rs`
+---
 
-Request/response structs with serde + validator derives:
+## Step 1 — Define a `HasConfig` trait
 
-- `LoginRequest` — `email: String` (valid email), `password: String` (min 8 chars)
-- `RegisterRequest` — `email: String` (valid email), `name: String` (1-100 chars), `password: String` (min 8 chars)
-- `TokenResponse` — `token: String`
+Create a trait that any state can implement to provide access to config (needed by `AuthUser`).
+
+```rust
+// src/state.rs
+
+pub trait HasConfig: Send + Sync + Clone {
+    fn config(&self) -> &Config;
+}
+```
+
+---
+
+## Step 2 — Define per-domain state structs
+
+Replace the monolithic `AppState` with focused state types. Keep `AppState` only for
+top-level wiring (constructing everything + holding the db pool).
+
+```rust
+// src/state.rs
+
+#[derive(Clone)]
+pub struct UserState {
+    pub config: Arc<Config>,
+    pub user_service: Arc<dyn UserService>,
+}
+
+#[derive(Clone)]
+pub struct AuthState {
+    pub config: Arc<Config>,
+    pub auth_service: Arc<dyn AuthService>,
+}
+
+#[derive(Clone)]
+pub struct HealthState {
+    pub db: Option<MySqlPool>,
+}
+```
+
+Implement `HasConfig` for each state that needs JWT auth:
+
+```rust
+impl HasConfig for UserState {
+    fn config(&self) -> &Config {
+        &self.config
+    }
+}
+
+impl HasConfig for AuthState {
+    fn config(&self) -> &Config {
+        &self.config
+    }
+}
+```
+
+Keep the `AppState` struct and `AppState::new()` as a **builder only** — it creates the
+db pool and services, then hands out sub-states. It is not used as router state.
+
+```rust
+impl AppState {
+    pub async fn new(config: &Config) -> anyhow::Result<Self> { /* unchanged */ }
+
+    pub fn user_state(&self) -> UserState {
+        UserState {
+            config: self.config.clone(),
+            user_service: self.user_service.clone(),
+        }
+    }
+
+    pub fn auth_state(&self) -> AuthState {
+        AuthState {
+            config: self.config.clone(),
+            auth_service: self.auth_service.clone(),
+        }
+    }
+
+    pub fn health_state(&self) -> HealthState {
+        HealthState {
+            db: self.db.clone(),
+        }
+    }
+}
+```
+
+---
+
+## Step 3 — Make `AuthUser` generic over `HasConfig`
+
+Change `FromRequestParts<AppState>` to `FromRequestParts<S>` with a `HasConfig` bound.
+
+```rust
+// src/middleware/auth.rs
+
+impl<S> FromRequestParts<S> for AuthUser
+where
+    S: HasConfig + Send + Sync,
+{
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        let TypedHeader(Authorization(bearer)) = parts
+            .extract::<TypedHeader<Authorization<Bearer>>>()
+            .await
+            .map_err(|_| AppError::Unauthorized)?;
+
+        let token_data = decode::<Claims>(
+            bearer.token(),
+            &DecodingKey::from_secret(state.config().jwt_secret.as_bytes()),
+            &Validation::default(),
+        )
+        .map_err(|_| AppError::Unauthorized)?;
+
+        Ok(AuthUser {
+            user_id: token_data.claims.sub,
+            email: token_data.claims.email,
+        })
+    }
+}
+```
+
+---
+
+## Step 4 — Update route files to use sub-states
+
+### `src/users/routes.rs`
+
+```rust
+pub fn router() -> Router<UserState> {
+    Router::new()
+        .route("/api/users", get(handler::list).post(handler::create))
+        .route("/api/users/:id", get(handler::get).put(handler::update).delete(handler::delete))
+}
+```
+
+### `src/users/handler.rs`
+
+Replace `State(state): State<AppState>` with `State(state): State<UserState>` in every
+handler. Access the service directly: `state.user_service.create(...)`.
 
 ### `src/auth/routes.rs`
 
-Two public (unauthenticated) routes:
-
 ```rust
-Router::new()
-    .route("/api/auth/login", post(handler::login))
-    .route("/api/auth/register", post(handler::register))
+pub fn router() -> Router<AuthState> {
+    Router::new()
+        .route("/api/auth/login", post(handler::login))
+        .route("/api/auth/register", post(handler::register))
+}
 ```
-
-No `AuthUser` extractor on these — they produce tokens, not consume them.
 
 ### `src/auth/handler.rs`
 
-Two handlers:
+Replace `State(state): State<AppState>` with `State(state): State<AuthState>`.
 
-- `login(State(state), ValidateJson(payload): ValidateJson<LoginRequest>) -> Result<Json<TokenResponse>>`
-  - Calls auth service login, returns token
-- `register(State(state), ValidateJson(payload): ValidateJson<RegisterRequest>) -> Result<(StatusCode, Json<TokenResponse>)>`
-  - Calls auth service register, returns 201 + token
+### `src/health/mod.rs`
 
-### `src/auth/service.rs`
+Replace `State(state): State<AppState>` with `State(state): State<HealthState>`.
+The `health` and `liveness` handlers don't use state at all, only `readiness` does.
 
-Trait + impl, same pattern as `UserService`:
+---
+
+## Step 5 — Wire sub-states in `build_router`
 
 ```rust
-#[async_trait]
-pub trait AuthService: Send + Sync {
-    async fn login(&self, payload: LoginRequest) -> Result<TokenResponse>;
-    async fn register(&self, payload: RegisterRequest) -> Result<TokenResponse>;
+// src/lib.rs
+
+pub fn build_router(state: AppState, config: &Config) -> Router {
+    let router = Router::new()
+        .merge(health::router().with_state(state.health_state()))
+        .merge(users::routes::router().with_state(state.user_state()))
+        .merge(auth::routes::router().with_state(state.auth_state()));
+
+    // layers remain the same — they don't depend on state
+    // ...
+    router
 }
 ```
 
-`AuthServiceImpl` holds `MySqlPool` + `Arc<Config>`.
+Note: since each sub-router now has `.with_state()` applied, they become `Router<()>` after
+merging. The final router no longer needs `.with_state(state)` at the bottom.
 
-**register:**
-1. Check email doesn't exist via `repository::email_exists()`
-2. Hash password with Argon2 (same as `UserServiceImpl::create`)
-3. Insert user via `repository::insert()`
-4. Generate JWT and return `TokenResponse`
+Remove the `.with_state(state)` call that currently sits at the end of `build_router`.
 
-**login:**
-1. Look up user by email via `repository::find_by_email()`
-   - If not found, return `AppError::Unauthorized`
-2. Verify password:
-   ```rust
-   use argon2::{Argon2, PasswordVerifier, PasswordHash};
-   let parsed = PasswordHash::new(&user.password_hash).map_err(|_| AppError::Unauthorized)?;
-   Argon2::default()
-       .verify_password(password.as_bytes(), &parsed)
-       .map_err(|_| AppError::Unauthorized)?;
-   ```
-3. Generate JWT and return `TokenResponse`
+---
 
-**generate_token helper (private):**
-- Build `Claims` struct (from `src/middleware/auth.rs`) with:
-  - `sub`: user ID (see note below about UUID vs BIGINT)
-  - `email`: user's email
-  - `iat`: `Utc::now().timestamp() as usize`
-  - `exp`: `(Utc::now() + Duration::hours(24)).timestamp() as usize`
-- Encode with `jsonwebtoken::encode(&Header::default(), &claims, &EncodingKey::from_secret(config.jwt_secret.as_bytes()))`
+## Step 6 — Fix the tests
 
-## Changes to Existing Files
+### User handler tests (`src/users/handler.rs`)
 
-### `src/users/repository.rs`
-
-Add a `find_by_email` function that returns a struct including `password_hash`:
+The `test_app` function simplifies — no `auth_service` needed:
 
 ```rust
-pub struct UserRow {
-    pub id: u64,
-    pub email: String,
-    pub name: String,
-    pub password_hash: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-}
+fn test_app(service: MockUserService) -> Router {
+    let config = crate::test_helpers::test_config();
+    let state = UserState {
+        config: Arc::new(config),
+        user_service: Arc::new(service),
+    };
 
-pub async fn find_by_email(pool: &MySqlPool, email: &str) -> Result<UserRow> { ... }
+    crate::users::routes::router().with_state(state)
+}
 ```
 
-Return `AppError::Unauthorized` (not `NotFound`) when the email doesn't exist, to avoid leaking whether an account exists.
+### Auth handler tests (when you add them)
 
-### `src/lib.rs`
+Same idea — only construct `AuthState` with a mock `AuthService`.
 
-- Add `pub mod auth;`
-- Add `.merge(auth::routes::router())` in `build_router()`
+### Health tests (if any)
 
-### `src/state.rs`
+Only need `HealthState { db: None }`.
 
-- Add `pub auth_service: Arc<dyn AuthService>` to `AppState`
-- Initialize it in `AppState::new()` alongside user_service
+---
 
-## Error Mapping
+## File change summary
 
-| Scenario                  | Error                              |
-| ------------------------- | ---------------------------------- |
-| Email not found on login  | `AppError::Unauthorized`           |
-| Wrong password            | `AppError::Unauthorized`           |
-| Duplicate email (register)| `AppError::Conflict`               |
-| Invalid input             | `AppError::Validation` (automatic) |
-
-## Thing to Resolve
-
-The users table uses `BIGINT UNSIGNED` for `id`, but `Claims.sub` is a `Uuid`. Options:
-- Add a `uuid` column to the users table and use that as the JWT subject
-- Change `Claims.sub` to `u64` to match the existing ID
-- Store the numeric ID as a string in `sub` and parse it back
-
-Pick one approach before implementing `generate_token`.
+| File                       | Change                                                      |
+| -------------------------- | ----------------------------------------------------------- |
+| `src/state.rs`             | Add `HasConfig` trait, `UserState`, `AuthState`, `HealthState`, builder methods |
+| `src/middleware/auth.rs`   | Make `AuthUser` generic over `S: HasConfig`                 |
+| `src/users/routes.rs`      | `Router<AppState>` → `Router<UserState>`                    |
+| `src/users/handler.rs`     | `State<AppState>` → `State<UserState>` in all handlers + tests |
+| `src/auth/routes.rs`       | `Router<AppState>` → `Router<AuthState>`                    |
+| `src/auth/handler.rs`      | `State<AppState>` → `State<AuthState>`                      |
+| `src/health/mod.rs`        | `Router<AppState>` → `Router<HealthState>`, update readiness |
+| `src/lib.rs`               | Apply `.with_state()` per sub-router, remove final `.with_state(state)` |

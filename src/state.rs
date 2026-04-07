@@ -1,4 +1,5 @@
 use crate::{
+    auth::service::{AuthService, AuthServiceImpl},
     config::Config,
     users::service::{UserService, UserServiceImpl},
 };
@@ -17,6 +18,7 @@ pub struct AppState {
 
     // NOTE: When we need to add cacheing
     // pub redis: redis::Client
+    pub auth_service: Arc<dyn AuthService>,
     pub user_service: Arc<dyn UserService>,
 }
 
@@ -33,11 +35,13 @@ impl AppState {
         // InitIalize redis cache client
         // let cache = redis::Client::open(&config.redis_url)
         // .context("FaileD to connect to Redis");
+        let config = Arc::new(config.clone());
 
         Ok(Self {
-            config: Arc::new(config.clone()),
+            config: config.clone(),
             db: Some(db.clone()),
-            user_service: Arc::new(UserServiceImpl::new(db)),
+            auth_service: Arc::new(AuthServiceImpl::new(db.clone(), config.clone())),
+            user_service: Arc::new(UserServiceImpl::new(db.clone())),
         })
     }
 }
