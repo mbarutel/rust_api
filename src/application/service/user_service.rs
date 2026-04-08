@@ -1,34 +1,18 @@
-use serde::{Deserialize, Serialize};
-use validator::Validate;
+use async_trait;
 
-#[derive(Debug, Deserialize, Validate)]
-pub struct CreateUserDto {
-    #[validate(email)]
-    pub email: String,
-    #[validate(length(min = 1))]
-    pub first_name: String,
-    #[validate(length(min = 1))]
-    pub last_name: String,
-    #[validate(length(min = 8))]
-    pub password: String,
-}
+use crate::{
+    application::{
+        dto::user_dto::{CreateUserRequest, UpdateUserRequest},
+        error::AppError,
+    },
+    domain::user::User,
+};
 
-#[derive(Debug, Deserialize, Validate)]
-pub struct UpdateUserDto {
-    #[validate(email)]
-    pub email: Option<String>,
-    #[validate(length(min = 1))]
-    pub first_name: String,
-    #[validate(length(min = 1))]
-    pub last_name: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct UserResponse {
-    pub id: u64,
-    pub email: String,
-    pub first_name: String,
-    pub last_name: String,
-    pub created_at: String,
-    pub updated_at: String,
+#[async_trait::async_trait]
+pub trait UserService: Send + Sync {
+    async fn list(&self, page: u32, per_page: u32) -> Result<(Vec<User>, i64), AppError>;
+    async fn get(&self, id: u64) -> Result<User, AppError>;
+    async fn create(&self, dto: CreateUserRequest) -> Result<User, AppError>;
+    async fn update(&self, id: u64, dto: UpdateUserRequest) -> Result<User, AppError>;
+    async fn delete(&self, id: u64) -> Result<(), AppError>;
 }
