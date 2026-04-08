@@ -20,9 +20,11 @@ pub struct UpdateUserRequest {
     #[validate(email)]
     pub email: Option<String>,
     #[validate(length(min = 1))]
-    pub first_name: String,
+    pub first_name: Option<String>,
     #[validate(length(min = 1))]
-    pub last_name: String,
+    pub last_name: Option<String>,
+    #[validate(length(min = 8))]
+    pub password: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

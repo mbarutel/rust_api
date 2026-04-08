@@ -10,6 +10,7 @@ pub mod users;
 // onion
 pub mod application;
 pub mod domain;
+pub mod infrastructure;
 
 use axum::{Router, http::StatusCode};
 use std::time::Duration;
