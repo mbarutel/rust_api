@@ -7,6 +7,9 @@ pub mod middleware;
 pub mod state;
 pub mod test_helpers;
 pub mod users;
+// onion
+pub mod application;
+pub mod domain;
 
 use axum::{Router, http::StatusCode};
 use std::time::Duration;

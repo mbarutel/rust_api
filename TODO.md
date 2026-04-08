@@ -89,7 +89,7 @@ except `Debug`, `Clone`.
 
 #[derive(Debug, Clone)]
 pub struct User {
-    pub id: String,
+    pub id: u64,
     pub email: String,
     pub name: String,
     pub password_hash: String,
@@ -113,13 +113,13 @@ use crate::domain::error::DomainError;
 
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync {
-    async fn find_by_id(&self, id: &str) -> Result<Option<User>, DomainError>;
+    async fn find_by_id(&self, id: u64) -> Result<Option<User>, DomainError>;
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError>;
     async fn find_all(&self, offset: i64, limit: i64) -> Result<Vec<User>, DomainError>;
     async fn count(&self) -> Result<i64, DomainError>;
     async fn create(&self, user: User) -> Result<User, DomainError>;
     async fn update(&self, user: User) -> Result<User, DomainError>;
-    async fn delete(&self, id: &str) -> Result<(), DomainError>;
+    async fn delete(&self, id: u64) -> Result<(), DomainError>;
 }
 ```
 
@@ -172,10 +172,10 @@ use crate::domain::user::User;
 #[async_trait::async_trait]
 pub trait UserService: Send + Sync {
     async fn list(&self, page: u32, per_page: u32) -> Result<(Vec<User>, i64), AppError>;
-    async fn get(&self, id: &str) -> Result<User, AppError>;
+    async fn get(&self, id: u64) -> Result<User, AppError>;
     async fn create(&self, dto: CreateUserDto) -> Result<User, AppError>;
-    async fn update(&self, id: &str, dto: UpdateUserDto) -> Result<User, AppError>;
-    async fn delete(&self, id: &str) -> Result<(), AppError>;
+    async fn update(&self, id: u64, dto: UpdateUserDto) -> Result<User, AppError>;
+    async fn delete(&self, id: u64) -> Result<(), AppError>;
 }
 ```
 
@@ -220,7 +220,7 @@ pub struct UpdateUserDto {
 
 #[derive(Debug, Serialize)]
 pub struct UserResponse {
-    pub id: String,
+    pub id: u64,
     pub email: String,
     pub name: String,
     pub created_at: String,
@@ -281,7 +281,7 @@ These mirror the DB schema and convert to/from domain models.
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct UserEntity {
-    pub id: String,
+    pub id: u64,
     pub email: String,
     pub name: String,
     pub password_hash: String,
@@ -311,7 +311,7 @@ pub struct DbUserRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for DbUserRepository {
-    async fn find_by_id(&self, id: &str) -> Result<Option<User>, DomainError> {
+    async fn find_by_id(&self, id: u64) -> Result<Option<User>, DomainError> {
         let entity = sqlx::query_as!(UserEntity, "SELECT * FROM users WHERE id = ?", id)
             .fetch_optional(&self.pool)
             .await
@@ -341,7 +341,7 @@ impl UserService for UserServiceImpl {
         let password_hash = hash_password(&dto.password)
             .map_err(|e| AppError::Internal(e.to_string()))?;
         let user = User {
-            id: Uuid::new_v4().to_string(),
+            id: 0, // auto-assigned by DB
             email: dto.email,
             name: dto.name,
             password_hash,
