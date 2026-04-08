@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod common;
 pub mod config;
 pub mod error;
@@ -23,6 +24,7 @@ use crate::{config::Config, middleware::rate_limiting::rate_limit_config, state:
 pub fn build_router(state: AppState, config: &Config) -> Router {
     let router = Router::new()
         .merge(health::router())
+        .merge(auth::routes::router())
         .merge(users::routes::router());
 
     let router = if config.rate_limiting {

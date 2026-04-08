@@ -16,7 +16,7 @@ pub async fn list(
     _user: AuthUser,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<PaginatedResponse<UserResponse>>> {
-    tracing::debug!(
+    tracing::info!(
         page = query.page,
         per_page = query.per_page,
         "Listing users"

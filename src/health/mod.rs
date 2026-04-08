@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use crate::state::AppState;
 
-pub fn router() -> Router<crate::state::AppState> {
+pub fn router() -> Router<AppState> {
     Router::new()
         .route("/health", get(health))
         .route("/health/live", get(liveness))
