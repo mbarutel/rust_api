@@ -37,11 +37,18 @@ impl AppState {
         // .context("FaileD to connect to Redis");
         let config = Arc::new(config.clone());
 
+        let user_service = Arc::new(UserServiceImpl::new(db.clone()));
+        let auth_service = Arc::new(AuthServiceImpl::new(
+            db.clone(),
+            config.clone(),
+            user_service.clone(),
+        ));
+
         Ok(Self {
             config: config.clone(),
             db: Some(db.clone()),
-            auth_service: Arc::new(AuthServiceImpl::new(db.clone(), config.clone())),
-            user_service: Arc::new(UserServiceImpl::new(db.clone())),
+            auth_service,
+            user_service,
         })
     }
 }

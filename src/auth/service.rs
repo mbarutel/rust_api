@@ -1,10 +1,11 @@
 use crate::auth::model::{LoginRequest, RegisterRequest, TokenResponse};
-use crate::common::password::{hash_password, verify_password};
+use crate::common::password::verify_password;
 use crate::config::Config;
 use crate::error::{AppError, Result};
 use crate::middleware::auth::Claims;
 use crate::users::model::UserRow;
 use crate::users::repository;
+use crate::users::service::UserService;
 use async_trait::async_trait;
 use chrono::Duration;
 use jsonwebtoken::{EncodingKey, Header, encode};
@@ -20,11 +21,16 @@ pub trait AuthService: Send + Sync {
 pub struct AuthServiceImpl {
     pool: MySqlPool,
     config: Arc<Config>,
+    user_service: Arc<dyn UserService>,
 }
 
 impl AuthServiceImpl {
-    pub fn new(pool: MySqlPool, config: Arc<Config>) -> Self {
-        Self { pool, config }
+    pub fn new(pool: MySqlPool, config: Arc<Config>, user_service: Arc<dyn UserService>) -> Self {
+        Self {
+            pool,
+            config,
+            user_service,
+        }
     }
 }
 
@@ -48,22 +54,9 @@ impl AuthService for AuthServiceImpl {
     }
 
     async fn register(&self, payload: RegisterRequest) -> Result<TokenResponse> {
-        if repository::email_exists(&self.pool, &payload.email).await? {
-            return Err(AppError::Conflict("Email already registered".to_string()));
-        }
+        let user = self.user_service.create(payload.into()).await?;
 
-        let password_hash = hash_password(&payload.password)?;
-        let now = chrono::Utc::now();
-        let id = repository::insert(
-            &self.pool,
-            &payload.email,
-            &payload.name,
-            &password_hash,
-            now,
-        )
-        .await?;
-
-        let token = generate_token(id, &payload.email, &self.config)?;
+        let token = generate_token(user.id, &user.email, &self.config)?;
 
         Ok(TokenResponse { token })
     }
