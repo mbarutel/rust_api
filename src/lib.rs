@@ -11,6 +11,7 @@ pub mod users;
 pub mod application;
 pub mod domain;
 pub mod infrastructure;
+pub mod presentation;
 
 use axum::{Router, http::StatusCode};
 use std::time::Duration;

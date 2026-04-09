@@ -30,6 +30,7 @@ src/
     error.rs             # AppError enum (wraps DomainError)
     dto/
       mod.rs
+      pagination.rs      # ListQuery + PaginatedResponse<T> (generic, shared across entities)
       user_dto.rs        # CreateUserDto, UpdateUserDto, UserResponse
       auth_dto.rs        # LoginRequest, RegisterRequest, TokenResponse
     service/
@@ -260,7 +261,8 @@ pub enum AppError {
 | `src/application/service/mod.rs` | `pub mod user_service; pub mod auth_service;` |
 | `src/application/service/user_service.rs` | `UserService` trait |
 | `src/application/service/auth_service.rs` | `AuthService` trait |
-| `src/application/dto/mod.rs` | `pub mod user_dto; pub mod auth_dto;` |
+| `src/application/dto/mod.rs` | `pub mod pagination; pub mod user_dto; pub mod auth_dto;` |
+| `src/application/dto/pagination.rs` | `ListQuery` + `PaginatedResponse<T>` (generic, reusable across entities) |
 | `src/application/dto/user_dto.rs` | Request/response DTOs + `From<User>` |
 | `src/application/dto/auth_dto.rs` | Login/register DTOs + token response |
 | `src/application/error.rs` | `AppError` wrapping `DomainError` |
@@ -459,6 +461,7 @@ pub fn routes(state: AppState) -> Router {
 | File | Contents |
 |------|----------|
 | `src/presentation/mod.rs` | `pub mod handler; pub mod middleware; pub mod routes; pub mod error;` |
+
 | `src/presentation/handler/mod.rs` | `pub mod user_handler; pub mod auth_handler; pub mod health_handler;` |
 | `src/presentation/handler/user_handler.rs` | Moved from `users/handler.rs` |
 | `src/presentation/handler/auth_handler.rs` | Moved from `auth/handler.rs` |
@@ -470,7 +473,66 @@ pub fn routes(state: AppState) -> Router {
 
 ---
 
-## Phase 5 — Wire Everything in main.rs (Composition Root)
+## Phase 5 — Rewrite `state.rs`
+
+`state.rs` sits at the boundary — it imports trait definitions from the application layer
+and holds them as `Arc<dyn Trait>`. It no longer constructs anything itself. Construction
+moves to `main.rs` (the composition root).
+
+The current `AppState::new()` both creates the pool AND builds services. In the onion
+architecture, `AppState` is a dumb container — it holds what `main.rs` gives it.
+
+```rust
+// src/state.rs
+
+use crate::application::service::auth_service::AuthService;
+use crate::application::service::user_service::UserService;
+use crate::infrastructure::config::Config;
+use sqlx::mysql::MySqlPool;
+use std::sync::Arc;
+
+#[derive(Clone)]
+pub struct AppState {
+    pub config: Arc<Config>,
+    pub db: Option<MySqlPool>,
+    pub auth_service: Arc<dyn AuthService>,
+    pub user_service: Arc<dyn UserService>,
+}
+```
+
+Key changes from the current `state.rs`:
+
+1. **No `AppState::new()`** — construction logic moves to `main.rs`. `AppState` is just
+   a struct with public fields that `main.rs` populates.
+2. **Imports only from `application`** (trait definitions) and `infrastructure::config`
+   — never imports concrete implementations like `UserServiceImpl` or `AuthServiceImpl`.
+3. **`db` field stays** — the presentation layer's health readiness check needs it to
+   verify the connection. If you later extract health checks into their own state (from
+   the old TODO), you could remove it.
+4. **No Redis placeholder** — add it when you actually need it, not before.
+
+### Why no constructor?
+
+In the old code, `AppState::new()` knew how to build `UserServiceImpl` and
+`AuthServiceImpl`. That couples `state.rs` to the infrastructure layer. In onion
+architecture, only `main.rs` (the composition root) knows about concrete types:
+
+```rust
+// main.rs builds everything, state.rs just holds it
+let state = AppState {
+    config: Arc::new(config.clone()),
+    db: Some(pool.clone()),
+    user_service: Arc::new(UserServiceImpl::new(user_repo.clone())) as Arc<dyn UserService>,
+    auth_service: Arc::new(AuthServiceImpl::new(user_repo, config)) as Arc<dyn AuthService>,
+};
+```
+
+This means `state.rs` compiles without any infrastructure crate in scope — it only
+depends on trait definitions and `sqlx::MySqlPool` (for the health check).
+
+---
+
+## Phase 6 — Wire Everything in `main.rs` (Composition Root)
 
 `main.rs` is the composition root — the only place that knows about all layers.
 It constructs concrete implementations and injects them as `Arc<dyn Trait>`.
@@ -503,9 +565,9 @@ async fn main() -> anyhow::Result<()> {
 
 ---
 
-## Phase 6 — Cleanup
+## Phase 7 — Cleanup
 
-### Step 6.1 — Delete old module directories
+### Step 7.1 — Delete old module directories
 
 Remove after all code has been moved and tests pass:
 
@@ -517,7 +579,7 @@ Remove after all code has been moved and tests pass:
 - `src/config.rs`
 - `src/error.rs`
 
-### Step 6.2 — Update `lib.rs` module declarations
+### Step 7.2 — Update `lib.rs` module declarations
 
 ```rust
 // src/lib.rs
@@ -529,12 +591,12 @@ pub mod presentation;
 pub mod state;
 ```
 
-### Step 6.3 — Update integration tests
+### Step 7.3 — Update integration tests
 
 Tests in `tests/` will need import path updates. The `build_test_app()` helper should
 construct `AppState` with mock services the same way `main.rs` does.
 
-### Step 6.4 — Verify the dependency rule
+### Step 7.4 — Verify the dependency rule
 
 Check that imports follow the onion rule (inner layers never import outer layers):
 
