@@ -1,6 +1,6 @@
 use crate::{
     application::service::{auth_service::AuthService, user_service::UserService},
-    config::Config,
+    infrastructure::config::Config,
 };
 use sqlx::mysql::MySqlPool;
 use std::sync::Arc;
@@ -8,14 +8,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct AppState {
     pub config: Arc<Config>,
-
-    // NOTE: At the moment, this seems to be redudant because the service will
-    // have their own access to the db. There needs to be a smarter way of what struct holds the
-    // database connection.
     pub db: MySqlPool,
-
-    // NOTE: When we need to add cacheing
-    // pub redis: redis::Client
     pub auth_service: Arc<dyn AuthService>,
     pub user_service: Arc<dyn UserService>,
 }

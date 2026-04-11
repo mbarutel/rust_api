@@ -1,11 +1,14 @@
-use rust_api::{build_router, config::Config, state::AppState};
-use std::net::SocketAddr;
+use rust_api::{
+    build_router,
+    infrastructure::{config::Config, database::pool::create_pool},
+    state::AppState,
+};
+use std::{net::SocketAddr, sync::Arc};
 use tokio::signal;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing for structured logging
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -14,13 +17,19 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer().json())
         .init();
 
-    // Load Configuration
     let config = Config::from_env();
+    let db_pool = create_pool(&config.database_url).await?;
+
+    // TODO: Continue here
+
 
     // Create application state
-    let state = AppState::new(&config)
-        .await
-        .expect("Failed to initialize app state");
+    let state = AppState {
+        config: Arc::new(config),
+        db: db_pool,
+
+
+    }
 
     // Build router with all routes and middleware
     let app = build_router(state, &config);

@@ -1,4 +1,4 @@
-mod config;
-mod database;
+pub mod config;
+pub mod database;
 mod password;
 mod service;

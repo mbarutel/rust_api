@@ -1,11 +1,12 @@
 use axum::Json;
 use axum::extract::{Path, Query, State};
+use axum::http::StatusCode;
 
 use crate::application::dto::pagination::{ListQueryRequest, PaginatedResponse};
 use crate::application::dto::user_dto::{CreateUserRequest, UpdateUserRequest, UserResponse};
-use crate::middleware::auth::AuthUser;
 use crate::middleware::validated_json::ValidateJson;
 use crate::presentation::error::HandlerError;
+use crate::presentation::middleware::auth::AuthUser;
 use crate::state::AppState;
 
 pub async fn create(
@@ -41,4 +42,22 @@ pub async fn list(
         per_page: query.per_page,
         total,
     }))
+}
+
+pub async fn get(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path(id): Path<u64>,
+) -> Result<Json<UserResponse>, HandlerError> {
+    let user = state.user_service.get(id).await?;
+    Ok(Json(UserResponse::from(user)))
+}
+
+pub async fn delete(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path(id): Path<u64>,
+) -> Result<StatusCode, HandlerError> {
+    state.user_service.delete(id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }

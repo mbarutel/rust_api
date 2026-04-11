@@ -1,17 +1,18 @@
-pub mod auth;
-pub mod common;
-pub mod config;
-pub mod error;
-pub mod health;
-pub mod middleware;
-pub mod state;
-pub mod test_helpers;
-pub mod users;
+// pub mod auth;
+// pub mod common;
+// pub mod config;
+// pub mod error;
+// pub mod health;
+// pub mod middleware;
+// pub mod state;
+// pub mod test_helpers;
+// pub mod users;
 // onion
 pub mod application;
 pub mod domain;
 pub mod infrastructure;
 pub mod presentation;
+pub mod state;
 
 use axum::{Router, http::StatusCode};
 use std::time::Duration;
