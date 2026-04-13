@@ -3,7 +3,7 @@ use axum::{Json, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 
 #[derive(Debug)]
-pub struct HandlerError(AppError);
+pub struct HandlerError(pub AppError);
 
 impl From<AppError> for HandlerError {
     fn from(e: AppError) -> Self {

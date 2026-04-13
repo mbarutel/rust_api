@@ -51,8 +51,3 @@ impl FromRequestParts<AppState> for AuthUser {
         })
     }
 }
-
-// Usage in handler:
-// async fn protected_route(user: AuthUser) -> impl IntoResposnse {
-//      format!("Hello, {}!", user.email)
-// }
