@@ -6,6 +6,12 @@ pub struct DbUserRepository {
     pool: MySqlPool,
 }
 
+impl DbUserRepository {
+    pub fn new(pool: MySqlPool) -> Self {
+        Self { pool }
+    }
+}
+
 #[async_trait::async_trait]
 impl UserRepository for DbUserRepository {
     async fn find_by_id(&self, id: u64) -> Result<User, DomainError> {

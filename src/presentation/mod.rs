@@ -1,4 +1,4 @@
 mod error;
-mod handler;
-mod middleware;
+pub mod handler;
+pub mod middleware;
 mod routes;

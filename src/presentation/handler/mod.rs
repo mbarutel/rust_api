@@ -1,3 +1,3 @@
-mod auth_handler;
-mod health_handler;
-mod user_handler;
+pub mod auth_handler;
+pub mod health_handler;
+pub mod user_handler;

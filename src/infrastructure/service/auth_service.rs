@@ -19,6 +19,15 @@ pub struct AuthServiceImpl {
     user_service: Arc<dyn UserService>,
 }
 
+impl AuthServiceImpl {
+    pub fn new(config: Arc<Config>, user_service: Arc<dyn UserService>) -> Self {
+        Self {
+            config,
+            user_service,
+        }
+    }
+}
+
 #[async_trait]
 impl AuthService for AuthServiceImpl {
     async fn login(&self, payload: LoginRequest) -> Result<TokenResponse, AppError> {

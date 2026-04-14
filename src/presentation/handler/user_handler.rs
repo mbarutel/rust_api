@@ -16,7 +16,7 @@ pub fn user_routes() -> Router<AppState> {
         .route("/api/users/{id}", get(find).put(update).delete(delete))
 }
 
-pub async fn create(
+async fn create(
     State(state): State<AppState>,
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateUserRequest>,
@@ -25,7 +25,7 @@ pub async fn create(
     Ok(Json(UserResponse::from(user)))
 }
 
-pub async fn update(
+async fn update(
     State(state): State<AppState>,
     _auth: AuthUser,
     Path(id): Path<u64>,
@@ -35,7 +35,7 @@ pub async fn update(
     Ok(Json(UserResponse::from(user)))
 }
 
-pub async fn list(
+async fn list(
     State(state): State<AppState>,
     _auth: AuthUser,
     Query(query): Query<ListQueryRequest>,
@@ -51,16 +51,16 @@ pub async fn list(
     }))
 }
 
-pub async fn find(
+async fn find(
     State(state): State<AppState>,
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<Json<UserResponse>, HandlerError> {
-    let user = state.user_service.get(id).await?;
+    let user = state.user_service.find_by_id(id).await?;
     Ok(Json(UserResponse::from(user)))
 }
 
-pub async fn delete(
+async fn delete(
     State(state): State<AppState>,
     _auth: AuthUser,
     Path(id): Path<u64>,

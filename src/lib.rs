@@ -14,6 +14,16 @@ pub mod infrastructure;
 pub mod presentation;
 pub mod state;
 
+use crate::{
+    infrastructure::config::Config,
+    presentation::{
+        handler::{
+            auth_handler::auth_routes, health_handler::health_routes, user_handler::user_routes,
+        },
+        middleware::rate_limiting::rate_limit_config,
+    },
+    state::AppState,
+};
 use axum::{Router, http::StatusCode};
 use std::time::Duration;
 use tower_governor::GovernorLayer;
@@ -25,13 +35,11 @@ use tower_http::{
     trace::TraceLayer,
 };
 
-use crate::{config::Config, middleware::rate_limiting::rate_limit_config, state::AppState};
-
 pub fn build_router(state: AppState, config: &Config) -> Router {
     let router = Router::new()
-        .merge(health::router())
-        .merge(auth::routes::router())
-        .merge(users::routes::router());
+        .merge(health_routes())
+        .merge(auth_routes())
+        .merge(user_routes());
 
     let router = if config.rate_limiting {
         router.layer(GovernorLayer::new(rate_limit_config()))
