@@ -8,6 +8,7 @@ use crate::{
     domain::models::user::User,
 };
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait UserService: Send + Sync {
     async fn list(&self, page: u32, per_page: u32) -> Result<(Vec<User>, u64), AppError>;

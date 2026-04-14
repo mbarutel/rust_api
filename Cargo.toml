@@ -43,3 +43,6 @@ argon2 = "0.5.3"
 tower_governor = "0.8.0"
 governor = "0.10.4"
 async-trait = "0.1.89"
+
+[dev-dependencies]
+mockall = "0.14.0"

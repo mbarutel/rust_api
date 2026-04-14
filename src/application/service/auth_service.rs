@@ -1,6 +1,7 @@
 use crate::application::dto::auth_dto::{LoginRequest, RegisterRequest, TokenResponse};
 use crate::application::error::AppError;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait AuthService: Send + Sync {
     async fn login(&self, dto: LoginRequest) -> Result<TokenResponse, AppError>;
