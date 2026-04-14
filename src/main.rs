@@ -1,7 +1,5 @@
 use rust_api::{
-    build_router,
-    infrastructure::{config::Config, database::pool::create_pool},
-    state::AppState,
+    build_router, domain::repository::user_repository::UserRepository, infrastructure::{config::Config, database::pool::create_pool}, state::AppState
 };
 use std::{net::SocketAddr, sync::Arc};
 use tokio::signal;
@@ -21,7 +19,6 @@ async fn main() {
     let db_pool = create_pool(&config.database_url).await?;
 
     // TODO: Continue here
-
 
     // Create application state
     let state = AppState {

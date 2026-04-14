@@ -24,8 +24,12 @@ impl UserService for UserServiceImpl {
         Ok((users, total))
     }
 
-    async fn get(&self, id: u64) -> Result<User, AppError> {
+    async fn find_by_id(&self, id: u64) -> Result<User, AppError> {
         Ok(self.repo.find_by_id(id).await?)
+    }
+
+    async fn find_by_email(&self, email: &str) -> Result<User, AppError> {
+        Ok(self.repo.find_by_email(email).await?)
     }
 
     async fn create(&self, dto: CreateUserRequest) -> Result<User, AppError> {

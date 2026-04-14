@@ -1,13 +1,20 @@
-use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
+use axum::{Json, Router, routing::get};
 
 use crate::application::dto::pagination::{ListQueryRequest, PaginatedResponse};
 use crate::application::dto::user_dto::{CreateUserRequest, UpdateUserRequest, UserResponse};
-use crate::middleware::validated_json::ValidateJson;
+use crate::presentation::middleware::validated_json::ValidateJson;
+
 use crate::presentation::error::HandlerError;
 use crate::presentation::middleware::auth::AuthUser;
 use crate::state::AppState;
+
+pub fn user_routes() -> Router<AppState> {
+    Router::new()
+        .route("/api/users", get(list).post(create))
+        .route("/api/users/{id}", get(find).put(update).delete(delete))
+}
 
 pub async fn create(
     State(state): State<AppState>,
@@ -44,7 +51,7 @@ pub async fn list(
     }))
 }
 
-pub async fn get(
+pub async fn find(
     State(state): State<AppState>,
     _auth: AuthUser,
     Path(id): Path<u64>,

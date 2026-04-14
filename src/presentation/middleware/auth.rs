@@ -4,19 +4,9 @@ use axum_extra::{
     headers::{Authorization, authorization::Bearer},
 };
 use jsonwebtoken::{DecodingKey, Validation, decode};
-use serde::{Deserialize, Serialize};
 
-use crate::state::AppState;
+use crate::{application::dto::auth_dto::Claims, state::AppState};
 use crate::{application::error::AppError, presentation::error::HandlerError};
-
-// JWT claims structure
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Claims {
-    pub sub: u64,   // Subject (user ID)
-    pub exp: usize, // Expiration time
-    pub iat: usize, // Issued at
-    pub email: String,
-}
 
 // Authenticated user extractor
 pub struct AuthUser {
