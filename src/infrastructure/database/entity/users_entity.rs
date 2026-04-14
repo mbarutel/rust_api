@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::domain::user::User;
+use crate::domain::models::user::User;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct UserEntity {

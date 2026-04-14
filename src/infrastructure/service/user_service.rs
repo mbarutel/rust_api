@@ -7,7 +7,7 @@ use crate::{
         error::AppError,
         service::user_service::UserService,
     },
-    domain::{error::DomainError, repository::user_repository::UserRepository, user::User},
+    domain::{error::DomainError, models::user::User, repository::user_repository::UserRepository},
     infrastructure::password::hash_password,
 };
 

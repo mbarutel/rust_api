@@ -5,7 +5,7 @@ use crate::{
         dto::user_dto::{CreateUserRequest, UpdateUserRequest},
         error::AppError,
     },
-    domain::user::User,
+    domain::models::user::User,
 };
 
 #[async_trait::async_trait]

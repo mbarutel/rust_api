@@ -1,6 +1,8 @@
 use sqlx::MySqlPool;
 
-use crate::domain::{error::DomainError, repository::user_repository::UserRepository, user::User};
+use crate::domain::{
+    error::DomainError, models::user::User, repository::user_repository::UserRepository,
+};
 
 pub struct DbUserRepository {
     pool: MySqlPool,

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::domain::user::User;
+use crate::domain::models::user::User;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateUserRequest {

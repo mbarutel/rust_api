@@ -1,5 +1,5 @@
 use crate::domain::error::DomainError;
-use crate::domain::user::User;
+use crate::domain::models::user::User;
 
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync {
