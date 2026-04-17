@@ -1,11 +1,18 @@
-use rust_api::{build_router, config::Config, state::AppState};
-use std::net::SocketAddr;
+use rust_api::{
+    build_router,
+    infrastructure::{
+        config::Config,
+        database::{pool::create_pool, repository::user_repository::DbUserRepository},
+        service::{auth_service::AuthServiceImpl, user_service::UserServiceImpl},
+    },
+    state::AppState,
+};
+use std::{net::SocketAddr, sync::Arc};
 use tokio::signal;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
-async fn main() {
-    // Initialize tracing for structured logging
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -14,13 +21,25 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer().json())
         .init();
 
-    // Load Configuration
-    let config = Config::from_env();
+    let config = Arc::new(Config::from_env());
+    let db_pool = create_pool(&config.database_url).await?;
+
+    // Infrastructure: concrete implementations
+    // let user_repo = Arc::new(DbUserRepository::new(pool.clone()));
+    // let user_service = Arc::new(UserServiceImpl::new(user_repo.clone()));
+    // let auth_service = Arc::new(AuthServiceImpl::new(user_repo.clone(), config.clone()));
+    // TODO: Continue here
+    let user_repo = Arc::new(DbUserRepository::new(db_pool.clone()));
+    let user_service = Arc::new(UserServiceImpl::new(user_repo.clone()));
+    let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
 
     // Create application state
-    let state = AppState::new(&config)
-        .await
-        .expect("Failed to initialize app state");
+    let state = AppState {
+        config: config.clone(),
+        db: db_pool,
+        user_service,
+        auth_service,
+    };
 
     // Build router with all routes and middleware
     let app = build_router(state, &config);
@@ -41,6 +60,8 @@ async fn main() {
     .unwrap();
 
     tracing::info!("Server shutdown complete");
+
+    Ok(())
 }
 
 // Handle graceful shutdown signals
