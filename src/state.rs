@@ -1,5 +1,9 @@
 use crate::{
-    application::service::{auth_service::AuthService, user_service::UserService},
+    application::service::{
+        auth_service::AuthService,
+        user_service::UserService,
+        venue_service::VenueService,
+    },
     infrastructure::config::Config,
 };
 use sqlx::mysql::MySqlPool;
@@ -11,6 +15,7 @@ pub struct AppState {
     pub db: MySqlPool,
     pub auth_service: Arc<dyn AuthService>,
     pub user_service: Arc<dyn UserService>,
+    pub venue_service: Arc<dyn VenueService>,
 }
 
 // impl AppState {

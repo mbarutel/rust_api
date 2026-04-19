@@ -2,8 +2,14 @@ use rust_api::{
     build_router,
     infrastructure::{
         config::Config,
-        database::{pool::create_pool, repository::user_repository::DbUserRepository},
-        service::{auth_service::AuthServiceImpl, user_service::UserServiceImpl},
+        database::{
+            pool::create_pool,
+            repository::{user_repository::DbUserRepository, venue_repository::DbVenueRepository},
+        },
+        service::{
+            auth_service::AuthServiceImpl, user_service::UserServiceImpl,
+            venue_service::VenueServiceImpl,
+        },
     },
     state::AppState,
 };
@@ -24,12 +30,10 @@ async fn main() -> anyhow::Result<()> {
     let config = Arc::new(Config::from_env());
     let db_pool = create_pool(&config.database_url).await?;
 
-    // Infrastructure: concrete implementations
-    // let user_repo = Arc::new(DbUserRepository::new(pool.clone()));
-    // let user_service = Arc::new(UserServiceImpl::new(user_repo.clone()));
-    // let auth_service = Arc::new(AuthServiceImpl::new(user_repo.clone(), config.clone()));
-    // TODO: Continue here
     let user_repo = Arc::new(DbUserRepository::new(db_pool.clone()));
+    let venue_repo = Arc::new(DbVenueRepository::new(db_pool.clone()));
+
+    let venue_service = Arc::new(VenueServiceImpl::new(venue_repo.clone()));
     let user_service = Arc::new(UserServiceImpl::new(user_repo.clone()));
     let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
 
@@ -39,6 +43,7 @@ async fn main() -> anyhow::Result<()> {
         db: db_pool,
         user_service,
         auth_service,
+        venue_service,
     };
 
     // Build router with all routes and middleware
@@ -50,6 +55,7 @@ async fn main() -> anyhow::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
+    println!("Server is running on {}", config.port);
     // axum::serve(listener, app)
     axum::serve(
         listener,

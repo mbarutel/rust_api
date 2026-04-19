@@ -49,9 +49,13 @@ mod tests {
         application::{
             dto::auth_dto::TokenResponse,
             error::AppError,
-            service::{auth_service::MockAuthService, user_service::MockUserService},
+            service::{
+                auth_service::MockAuthService, user_service::MockUserService,
+                venue_service::MockVenueService,
+            },
         },
-        presentation::handler::{auth_handler::auth_routes, utils::test_state},
+        presentation::handler::utils::test_state,
+        user_routes,
     };
 
     #[tokio::test]
@@ -63,7 +67,11 @@ mod tests {
             })
         });
 
-        let app = auth_routes().with_state(test_state(MockUserService::new(), auth));
+        let app = user_routes().with_state(test_state(
+            MockUserService::new(),
+            MockAuthService::new(),
+            MockVenueService::new(),
+        ));
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")
@@ -82,7 +90,11 @@ mod tests {
             .once()
             .returning(|_| Err(AppError::Unauthorized));
 
-        let app = auth_routes().with_state(test_state(MockUserService::new(), auth));
+        let app = user_routes().with_state(test_state(
+            MockUserService::new(),
+            MockAuthService::new(),
+            MockVenueService::new(),
+        ));
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")
@@ -98,7 +110,11 @@ mod tests {
     async fn login_invalid_email() {
         let auth = MockAuthService::new();
 
-        let app = auth_routes().with_state(test_state(MockUserService::new(), auth));
+        let app = user_routes().with_state(test_state(
+            MockUserService::new(),
+            MockAuthService::new(),
+            MockVenueService::new(),
+        ));
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")

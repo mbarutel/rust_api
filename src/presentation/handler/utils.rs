@@ -6,14 +6,22 @@ use sqlx::mysql::MySqlPoolOptions;
 use crate::{
     application::{
         dto::auth_dto::Claims,
-        service::{auth_service::MockAuthService, user_service::MockUserService},
+        service::{
+            auth_service::MockAuthService,
+            user_service::MockUserService,
+            venue_service::MockVenueService,
+        },
     },
     infrastructure::config::Config,
     state::AppState,
 };
 
 // Builds AppState with injected mocks
-pub fn test_state(user_svc: MockUserService, auth_svc: MockAuthService) -> AppState {
+pub fn test_state(
+    user_svc: MockUserService,
+    auth_svc: MockAuthService,
+    venue_svc: MockVenueService,
+) -> AppState {
     AppState {
         config: Arc::new(Config {
             port: 3000,
@@ -22,12 +30,13 @@ pub fn test_state(user_svc: MockUserService, auth_svc: MockAuthService) -> AppSt
             database_url: "mysql://fake".to_string(),
             jwt_secret: "test_secret".to_string(),
         }),
-        // connect_lazY: pool erxists but never connect unless .acquire() is called
+        // connect_lazy: pool exists but never connects unless .acquire() is called
         db: MySqlPoolOptions::new()
             .connect_lazy("mysql://fake")
             .unwrap(),
         auth_service: Arc::new(auth_svc),
         user_service: Arc::new(user_svc),
+        venue_service: Arc::new(venue_svc),
     }
 }
 
