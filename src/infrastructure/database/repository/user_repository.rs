@@ -11,6 +11,7 @@ use crate::{
 
 db_repository!(DbUserRepository);
 
+// TODO: This should return user entity
 #[async_trait::async_trait]
 impl Repository<User> for DbUserRepository {
     async fn find_by_id(&self, id: u64) -> Result<User, DomainError> {
