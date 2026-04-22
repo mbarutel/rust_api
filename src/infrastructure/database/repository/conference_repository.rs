@@ -1,10 +1,10 @@
 use crate::{
-    db_repository,
-    domain::{
-        error::DomainError,
-        models::conference::Conference,
+    application::{
+        entity::conference_entity::ConferenceEntity,
         repository::{Repository, conference_repository::ConferenceRepository},
     },
+    db_repository,
+    domain::error::DomainError,
     impl_count, impl_delete,
     infrastructure::database::repository::macros::{map_db_err, map_find_err},
 };
@@ -12,10 +12,10 @@ use crate::{
 db_repository!(DbConferenceRepository);
 
 #[async_trait::async_trait]
-impl Repository<Conference> for DbConferenceRepository {
-    async fn find_by_id(&self, id: u64) -> Result<Conference, DomainError> {
+impl Repository<ConferenceEntity> for DbConferenceRepository {
+    async fn find_by_id(&self, id: u64) -> Result<ConferenceEntity, DomainError> {
         sqlx::query_as!(
-            Conference,
+            ConferenceEntity,
             "SELECT 
                 id,
                 code,
@@ -39,9 +39,13 @@ impl Repository<Conference> for DbConferenceRepository {
         .map_err(map_find_err)
     }
 
-    async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<Conference>, DomainError> {
+    async fn find_all(
+        &self,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<ConferenceEntity>, DomainError> {
         sqlx::query_as!(
-            Conference,
+            ConferenceEntity,
             "SELECT
                 id,
                 code,
@@ -66,7 +70,7 @@ impl Repository<Conference> for DbConferenceRepository {
         .map_err(map_db_err)
     }
 
-    async fn create(&self, venue: Conference) -> Result<Conference, DomainError> {
+    async fn create(&self, venue: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {
         todo!();
         // sqlx::query!(
         //     "INSERT INTO
@@ -103,7 +107,7 @@ impl Repository<Conference> for DbConferenceRepository {
         // Ok(venue)
     }
 
-    async fn update(&self, venue: Conference) -> Result<Conference, DomainError> {
+    async fn update(&self, venue: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {
         todo!();
         // sqlx::query!(
         //     "UPDATE

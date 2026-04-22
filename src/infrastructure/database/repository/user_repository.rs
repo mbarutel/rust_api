@@ -1,22 +1,21 @@
 use crate::{
-    db_repository,
-    domain::{
-        error::DomainError,
-        models::user::User,
+    application::{
+        entity::user_entity::UserEntity,
         repository::{Repository, user_repository::UserRepository},
     },
+    db_repository,
+    domain::{error::DomainError, models::user::User},
     impl_count, impl_delete,
     infrastructure::database::repository::macros::{map_db_err, map_find_err},
 };
 
 db_repository!(DbUserRepository);
 
-// TODO: This should return user entity
 #[async_trait::async_trait]
-impl Repository<User> for DbUserRepository {
-    async fn find_by_id(&self, id: u64) -> Result<User, DomainError> {
+impl Repository<UserEntity> for DbUserRepository {
+    async fn find_by_id(&self, id: u64) -> Result<UserEntity, DomainError> {
         sqlx::query_as!(
-            User,
+            UserEntity,
             "SELECT 
                 id,
                 email,
@@ -36,9 +35,9 @@ impl Repository<User> for DbUserRepository {
         .map_err(map_find_err)
     }
 
-    async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<User>, DomainError> {
+    async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<UserEntity>, DomainError> {
         sqlx::query_as!(
-            User,
+            UserEntity,
             "SELECT 
                 id,
                 first_name,
@@ -59,7 +58,7 @@ impl Repository<User> for DbUserRepository {
         .map_err(map_db_err)
     }
 
-    async fn create(&self, user: User) -> Result<User, DomainError> {
+    async fn create(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
         sqlx::query!(
             "INSERT INTO
                 users (
@@ -85,7 +84,7 @@ impl Repository<User> for DbUserRepository {
         Ok(user)
     }
 
-    async fn update(&self, user: User) -> Result<User, DomainError> {
+    async fn update(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
         sqlx::query!(
             "UPDATE
                 users

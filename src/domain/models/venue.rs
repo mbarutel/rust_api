@@ -11,13 +11,7 @@ pub struct Venue {
     pub postal_code: Option<String>,
     pub country: Option<String>,
     pub notes: Option<String>,
-    pub published: i8,
+    pub published: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-impl Venue {
-    pub fn is_published(&self) -> bool {
-        self.published != 0
-    }
 }

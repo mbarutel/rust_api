@@ -4,10 +4,12 @@ use std::sync::Arc;
 use crate::{
     application::{
         dto::user_dto::{CreateUserRequest, UpdateUserRequest},
+        entity::user_entity::UserEntity,
         error::AppError,
+        repository::user_repository::UserRepository,
         service::user_service::UserService,
     },
-    domain::{error::DomainError, models::user::User, repository::user_repository::UserRepository},
+    domain::{error::DomainError, models::user::User},
     infrastructure::password::hash_password,
 };
 
@@ -26,23 +28,30 @@ impl UserService for UserServiceImpl {
     async fn list(&self, page: u32, per_page: u32) -> Result<(Vec<User>, u64), AppError> {
         let offset = (page - 1) * per_page;
         let total = self.user_repo.count().await?;
-        let users = self.user_repo.find_all(offset, per_page).await?;
+        let users = self
+            .user_repo
+            .find_all(offset, per_page)
+            .await?
+            .into_iter()
+            .map(User::from)
+            .collect();
         Ok((users, total))
     }
 
     async fn find_by_id(&self, id: u64) -> Result<User, AppError> {
-        Ok(self.user_repo.find_by_id(id).await?)
+        Ok(User::from(self.user_repo.find_by_id(id).await?))
     }
 
     async fn find_by_email(&self, email: &str) -> Result<User, AppError> {
-        Ok(self.user_repo.find_by_email(email).await?)
+        Ok(User::from(self.user_repo.find_by_email(email).await?))
     }
 
     async fn create(&self, dto: CreateUserRequest) -> Result<User, AppError> {
         if self.user_repo.email_exists(&dto.email).await? {
             return Err(AppError::Domain(DomainError::Conflict));
         }
-        let user = User {
+
+        let user = UserEntity {
             id: 0,
             email: dto.email,
             first_name: dto.first_name,
@@ -51,7 +60,8 @@ impl UserService for UserServiceImpl {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        self.user_repo.create(user).await.map_err(AppError::from)
+
+        Ok(User::from(self.user_repo.create(user).await?))
     }
 
     async fn update(&self, id: u64, dto: UpdateUserRequest) -> Result<User, AppError> {
@@ -60,7 +70,7 @@ impl UserService for UserServiceImpl {
             Some(pass) => hash_password(&pass)?,
             None => user.password_hash,
         };
-        let user = User {
+        let user = UserEntity {
             id: 0,
             email: dto.email.unwrap_or(user.email),
             first_name: dto.first_name.unwrap_or(user.first_name),
@@ -69,7 +79,8 @@ impl UserService for UserServiceImpl {
             created_at: user.created_at,
             updated_at: Utc::now(),
         };
-        self.user_repo.update(user).await.map_err(AppError::from)
+
+        Ok(User::from(self.user_repo.update(user).await?))
     }
 
     async fn delete(&self, id: u64) -> Result<(), AppError> {

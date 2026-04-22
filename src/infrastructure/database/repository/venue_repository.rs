@@ -1,10 +1,10 @@
 use crate::{
-    db_repository,
-    domain::{
-        error::DomainError,
-        models::venue::Venue,
+    application::{
+        entity::venue_entity::VenueEntity,
         repository::{Repository, venue_repository::VenueRepository},
     },
+    db_repository,
+    domain::error::DomainError,
     impl_count, impl_delete,
     infrastructure::database::repository::macros::{map_db_err, map_find_err},
 };
@@ -12,10 +12,10 @@ use crate::{
 db_repository!(DbVenueRepository);
 
 #[async_trait::async_trait]
-impl Repository<Venue> for DbVenueRepository {
-    async fn find_by_id(&self, id: u64) -> Result<Venue, DomainError> {
+impl Repository<VenueEntity> for DbVenueRepository {
+    async fn find_by_id(&self, id: u64) -> Result<VenueEntity, DomainError> {
         sqlx::query_as!(
-            Venue,
+            VenueEntity,
             "SELECT 
                 id,
                 name,
@@ -40,9 +40,9 @@ impl Repository<Venue> for DbVenueRepository {
         .map_err(map_find_err)
     }
 
-    async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<Venue>, DomainError> {
+    async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<VenueEntity>, DomainError> {
         sqlx::query_as!(
-            Venue,
+            VenueEntity,
             "SELECT
                 id,
                 name,
@@ -68,7 +68,7 @@ impl Repository<Venue> for DbVenueRepository {
         .map_err(map_db_err)
     }
 
-    async fn create(&self, venue: Venue) -> Result<Venue, DomainError> {
+    async fn create(&self, venue: VenueEntity) -> Result<VenueEntity, DomainError> {
         sqlx::query!(
             "INSERT INTO
                 venues (
@@ -104,7 +104,7 @@ impl Repository<Venue> for DbVenueRepository {
         Ok(venue)
     }
 
-    async fn update(&self, venue: Venue) -> Result<Venue, DomainError> {
+    async fn update(&self, venue: VenueEntity) -> Result<VenueEntity, DomainError> {
         sqlx::query!(
             "UPDATE
                 venues
