@@ -26,3 +26,5 @@ impl From<UserEntity> for User {
         }
     }
 }
+
+// NOTE: I still can't find the value of this struct

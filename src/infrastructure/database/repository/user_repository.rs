@@ -1,24 +1,21 @@
-use sqlx::MySqlPool;
-
-use crate::domain::{
-    error::DomainError, models::user::User, repository::user_repository::UserRepository,
+use crate::{
+    application::{
+        entity::user_entity::UserEntity,
+        repository::{Repository, user_repository::UserRepository},
+    },
+    db_repository,
+    domain::error::DomainError,
+    impl_count, impl_delete,
+    infrastructure::database::repository::macros::{map_db_err, map_find_err},
 };
 
-pub struct DbUserRepository {
-    pool: MySqlPool,
-}
-
-impl DbUserRepository {
-    pub fn new(pool: MySqlPool) -> Self {
-        Self { pool }
-    }
-}
+db_repository!(DbUserRepository);
 
 #[async_trait::async_trait]
-impl UserRepository for DbUserRepository {
-    async fn find_by_id(&self, id: u64) -> Result<User, DomainError> {
+impl Repository<UserEntity> for DbUserRepository {
+    async fn find_by_id(&self, id: u64) -> Result<UserEntity, DomainError> {
         sqlx::query_as!(
-            User,
+            UserEntity,
             "SELECT 
                 id,
                 email,
@@ -35,40 +32,12 @@ impl UserRepository for DbUserRepository {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => DomainError::NotFound,
-            _ => DomainError::Database(e.to_string()),
-        })
+        .map_err(map_find_err)
     }
 
-    async fn find_by_email(&self, email: &str) -> Result<User, DomainError> {
+    async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<UserEntity>, DomainError> {
         sqlx::query_as!(
-            User,
-            "SELECT 
-                id,
-                email,
-                first_name,
-                last_name,
-                password_hash,
-                created_at,
-                updated_at
-            FROM
-                users
-            WHERE 
-                email = ?",
-            email,
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => DomainError::NotFound,
-            _ => DomainError::Database(e.to_string()),
-        })
-    }
-
-    async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<User>, DomainError> {
-        sqlx::query_as!(
-            User,
+            UserEntity,
             "SELECT 
                 id,
                 first_name,
@@ -86,10 +55,10 @@ impl UserRepository for DbUserRepository {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))
+        .map_err(map_db_err)
     }
 
-    async fn create(&self, user: User) -> Result<User, DomainError> {
+    async fn create(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
         sqlx::query!(
             "INSERT INTO
                 users (
@@ -110,12 +79,12 @@ impl UserRepository for DbUserRepository {
         )
         .execute(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(map_db_err)?;
 
         Ok(user)
     }
 
-    async fn update(&self, user: User) -> Result<User, DomainError> {
+    async fn update(&self, user: UserEntity) -> Result<UserEntity, DomainError> {
         sqlx::query!(
             "UPDATE
                 users
@@ -136,36 +105,45 @@ impl UserRepository for DbUserRepository {
         )
         .execute(&self.pool)
         .await
-        .map_err(|e| DomainError::Database(e.to_string()))?;
+        .map_err(map_db_err)?;
 
         Ok(user)
     }
+    impl_count!("users");
+    impl_delete!("users");
+}
 
-    async fn delete(&self, id: u64) -> Result<(), DomainError> {
-        sqlx::query!("DELETE FROM users WHERE id = ?", id)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| DomainError::Database(e.to_string()))?;
-
-        Ok(())
-    }
-
-    async fn count(&self) -> Result<u64, DomainError> {
-        let count: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM users")
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| DomainError::Database(e.to_string()))?;
-
-        Ok(count as u64)
-    }
-
+#[async_trait::async_trait]
+impl UserRepository for DbUserRepository {
     async fn email_exists(&self, email: &str) -> Result<bool, DomainError> {
         let exists =
             sqlx::query_scalar!("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)", email,)
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|e| DomainError::Database(e.to_string()))?;
+                .map_err(map_db_err)?;
 
         Ok(exists == 1)
+    }
+
+    async fn find_by_email(&self, email: &str) -> Result<UserEntity, DomainError> {
+        sqlx::query_as!(
+            UserEntity,
+            "SELECT 
+                id,
+                email,
+                first_name,
+                last_name,
+                password_hash,
+                created_at,
+                updated_at
+            FROM
+                users
+            WHERE 
+                email = ?",
+            email,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_find_err)
     }
 }
