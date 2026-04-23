@@ -1,11 +1,8 @@
-use chrono::NaiveDate;
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{
-    application::dto::venue_dto::VenueResponse,
-    domain::models::{conference::Conference, venue::Venue},
-};
+use crate::{application::dto::venue_dto::VenueResponse, domain::models::conference::Conference};
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateConferenceRequest {
@@ -14,20 +11,18 @@ pub struct CreateConferenceRequest {
     pub name: String,
     pub poster_url: Option<String>,
     pub description: Option<String>,
-    pub start_date: Option<NaiveDate>,
-    pub end_date: Option<NaiveDate>,
+    pub start_date: Option<NaiveDateTime>,
+    pub end_date: Option<NaiveDateTime>,
     pub venue_id: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateConferenceRequest {
-    #[validate(length(equal = 4))]
-    pub code: Option<String>,
     pub name: Option<String>,
     pub poster_url: Option<String>,
     pub description: Option<String>,
-    pub start_date: Option<NaiveDate>,
-    pub end_date: Option<NaiveDate>,
+    pub start_date: Option<NaiveDateTime>,
+    pub end_date: Option<NaiveDateTime>,
     pub venue_id: Option<u64>,
 }
 
@@ -46,11 +41,10 @@ pub struct ConferenceResponse {
     pub updated_at: String,
 }
 
-impl From<(Conference, Option<Venue>)> for ConferenceResponse {
-    fn from((conference, venue): (Conference, Option<Venue>)) -> Self {
-        let published = conference.is_published();
-        let venue = venue.map(VenueResponse::from);
+impl From<Conference> for ConferenceResponse {
+    fn from(conference: Conference) -> Self {
         let start_date = conference.start_date.map(|v| v.to_string());
+        let venue_response = conference.venue.map(VenueResponse::from);
         let end_date = conference.end_date.map(|v| v.to_string());
 
         ConferenceResponse {
@@ -61,8 +55,8 @@ impl From<(Conference, Option<Venue>)> for ConferenceResponse {
             description: conference.description,
             start_date,
             end_date,
-            venue,
-            published,
+            venue: venue_response,
+            published: conference.published,
             created_at: conference.created_at.to_string(),
             updated_at: conference.updated_at.to_string(),
         }

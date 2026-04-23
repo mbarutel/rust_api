@@ -48,18 +48,17 @@ pub struct VenueResponse {
 
 impl From<Venue> for VenueResponse {
     fn from(venue: Venue) -> Self {
-        let published = venue.is_published();
         VenueResponse {
             id: venue.id,
             name: venue.name,
             address_line1: venue.address_line1,
-            address_line2: venue.address_line2.flatten(),
+            address_line2: venue.address_line2,
             city: venue.city,
             state_region: venue.state_region,
             postal_code: venue.postal_code,
             country: venue.country,
             notes: venue.notes,
-            published,
+            published: venue.published,
             created_at: venue.created_at.to_string(),
             updated_at: venue.updated_at.to_string(),
         }

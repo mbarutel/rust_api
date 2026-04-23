@@ -70,78 +70,70 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
         .map_err(map_db_err)
     }
 
-    async fn create(&self, venue: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {
-        todo!();
-        // sqlx::query!(
-        //     "INSERT INTO
-        //         conferences (
-        //             name,
-        //             address_line1,
-        //             address_line2,
-        //             city,
-        //             state_region,
-        //             postal_code,
-        //             country,
-        //             notes,
-        //             published,
-        //             created_at,
-        //             updated_at
-        //         )
-        //     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        //     venue.name,
-        //     venue.address_line1,
-        //     venue.address_line2,
-        //     venue.city,
-        //     venue.state_region,
-        //     venue.postal_code,
-        //     venue.country,
-        //     venue.notes,
-        //     venue.published,
-        //     venue.created_at,
-        //     venue.updated_at,
-        // )
-        // .execute(&self.pool)
-        // .await
-        // .map_err(map_db_err)?;
+    async fn create(&self, conference: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {
+        sqlx::query!(
+            "INSERT INTO
+                conferences (
+                    code,
+                    name,
+                    poster_url,
+                    description,
+                    start_date,
+                    end_date,
+                    venue_id,
+                    published,
+                    created_at,
+                    updated_at
+                )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            conference.code,
+            conference.name,
+            conference.poster_url,
+            conference.description,
+            conference.start_date,
+            conference.end_date,
+            conference.venue_id,
+            conference.published,
+            conference.created_at,
+            conference.updated_at,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_db_err)?;
 
-        // Ok(venue)
+        Ok(conference)
     }
 
-    async fn update(&self, venue: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {
-        todo!();
-        // sqlx::query!(
-        //     "UPDATE
-        //         conferences
-        //     SET
-        //         name = ?,
-        //         address_line1 = ?,
-        //         address_line2 = ?,
-        //         city = ?,
-        //         state_region = ?,
-        //         postal_code = ?,
-        //         country = ?,
-        //         notes = ?,
-        //         published = ?,
-        //         updated_at = ?
-        //     WHERE
-        //         id = ?",
-        //     venue.name,
-        //     venue.address_line1,
-        //     venue.address_line2,
-        //     venue.city,
-        //     venue.state_region,
-        //     venue.postal_code,
-        //     venue.country,
-        //     venue.notes,
-        //     venue.published,
-        //     venue.updated_at,
-        //     venue.id,
-        // )
-        // .execute(&self.pool)
-        // .await
-        // .map_err(map_db_err)?;
+    async fn update(&self, conference: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {
+        sqlx::query!(
+            "UPDATE
+                conferences
+            SET
+                name = ?,
+                poster_url = ?,
+                description = ?,
+                start_date = ?,
+                end_date = ?,
+                venue_id = ?,
+                published = ?,
+                updated_at = ?
+            WHERE
+                id = ?",
+            conference.name,
+            conference.poster_url,
+            conference.description,
+            conference.start_date,
+            conference.end_date,
+            conference.venue_id,
+            conference.published,
+            conference.updated_at,
+            conference.id,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_db_err)?;
 
-        // Ok(venue)
+        Ok(conference)
     }
 
     impl_count!("conferences");

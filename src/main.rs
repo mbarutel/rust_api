@@ -4,11 +4,14 @@ use rust_api::{
         config::Config,
         database::{
             pool::create_pool,
-            repository::{user_repository::DbUserRepository, venue_repository::DbVenueRepository},
+            repository::{
+                conference_repository::DbConferenceRepository, user_repository::DbUserRepository,
+                venue_repository::DbVenueRepository,
+            },
         },
         service::{
-            auth_service::AuthServiceImpl, user_service::UserServiceImpl,
-            venue_service::VenueServiceImpl,
+            auth_service::AuthServiceImpl, conference_service::ConferenceServiceImpl,
+            user_service::UserServiceImpl, venue_service::VenueServiceImpl,
         },
     },
     state::AppState,
@@ -32,10 +35,12 @@ async fn main() -> anyhow::Result<()> {
 
     let user_repo = Arc::new(DbUserRepository::new(db_pool.clone()));
     let venue_repo = Arc::new(DbVenueRepository::new(db_pool.clone()));
+    let conference_repo = Arc::new(DbConferenceRepository::new(db_pool.clone()));
 
-    let venue_service = Arc::new(VenueServiceImpl::new(venue_repo.clone()));
     let user_service = Arc::new(UserServiceImpl::new(user_repo.clone()));
     let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
+    let venue_service = Arc::new(VenueServiceImpl::new(venue_repo.clone()));
+    let conference_service = Arc::new(ConferenceServiceImpl::new(conference_repo, venue_repo));
 
     // Create application state
     let state = AppState {
@@ -44,6 +49,7 @@ async fn main() -> anyhow::Result<()> {
         user_service,
         auth_service,
         venue_service,
+        conference_service,
     };
 
     // Build router with all routes and middleware

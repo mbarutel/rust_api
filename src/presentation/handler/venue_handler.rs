@@ -17,7 +17,6 @@ pub fn venue_routes() -> Router<AppState> {
 
 async fn list(
     State(state): State<AppState>,
-    _auth: AuthUser,
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<VenueResponse>>, HandlerError> {
     let (venues, total) = state.venue_service.list(query.page, query.per_page).await?;
@@ -33,7 +32,6 @@ async fn list(
 
 async fn find(
     State(state): State<AppState>,
-    _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<Json<VenueResponse>, HandlerError> {
     let venue = state.venue_service.find_by_id(id).await?;
@@ -80,13 +78,15 @@ mod tests {
         application::{
             error::AppError,
             service::{
-                auth_service::MockAuthService,
-                user_service::MockUserService,
+                auth_service::MockAuthService, user_service::MockUserService,
                 venue_service::MockVenueService,
             },
         },
         domain::{error::DomainError, models::venue::Venue},
-        presentation::handler::{utils::{test_jwt, test_state}, venue_handler::venue_routes},
+        presentation::handler::{
+            utils::{test_jwt, test_state},
+            venue_handler::venue_routes,
+        },
     };
 
     fn fake_venue() -> Venue {

@@ -4,7 +4,7 @@ use crate::{
         repository::{Repository, user_repository::UserRepository},
     },
     db_repository,
-    domain::{error::DomainError, models::user::User},
+    domain::error::DomainError,
     impl_count, impl_delete,
     infrastructure::database::repository::macros::{map_db_err, map_find_err},
 };
@@ -125,9 +125,9 @@ impl UserRepository for DbUserRepository {
         Ok(exists == 1)
     }
 
-    async fn find_by_email(&self, email: &str) -> Result<User, DomainError> {
+    async fn find_by_email(&self, email: &str) -> Result<UserEntity, DomainError> {
         sqlx::query_as!(
-            User,
+            UserEntity,
             "SELECT 
                 id,
                 email,

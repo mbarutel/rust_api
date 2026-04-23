@@ -18,10 +18,8 @@ use crate::{
     infrastructure::config::Config,
     presentation::{
         handler::{
-            auth_handler::auth_routes,
-            health_handler::health_routes,
-            user_handler::user_routes,
-            venue_handler::venue_routes,
+            auth_handler::auth_routes, conference_handler::conference_routes,
+            health_handler::health_routes, user_handler::user_routes, venue_handler::venue_routes,
         },
         middleware::rate_limiting::rate_limit_config,
     },
@@ -43,7 +41,8 @@ pub fn build_router(state: AppState, config: &Config) -> Router {
         .merge(health_routes())
         .merge(auth_routes())
         .merge(user_routes())
-        .merge(venue_routes());
+        .merge(venue_routes())
+        .merge(conference_routes());
 
     let router = if config.rate_limiting {
         router.layer(GovernorLayer::new(rate_limit_config()))

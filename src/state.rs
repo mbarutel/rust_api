@@ -1,8 +1,7 @@
 use crate::{
     application::service::{
-        auth_service::AuthService,
-        user_service::UserService,
-        venue_service::VenueService,
+        auth_service::AuthService, conference_service::ConferenceService,
+        user_service::UserService, venue_service::VenueService,
     },
     infrastructure::config::Config,
 };
@@ -16,6 +15,7 @@ pub struct AppState {
     pub auth_service: Arc<dyn AuthService>,
     pub user_service: Arc<dyn UserService>,
     pub venue_service: Arc<dyn VenueService>,
+    pub conference_service: Arc<dyn ConferenceService>,
 }
 
 // impl AppState {

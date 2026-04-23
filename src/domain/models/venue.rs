@@ -5,7 +5,7 @@ pub struct Venue {
     pub id: u64,
     pub name: String,
     pub address_line1: Option<String>,
-    pub address_line2: Option<Option<String>>,
+    pub address_line2: Option<String>,
     pub city: Option<String>,
     pub state_region: Option<String>,
     pub postal_code: Option<String>,
