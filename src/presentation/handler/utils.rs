@@ -7,9 +7,8 @@ use crate::{
     application::{
         dto::auth_dto::Claims,
         service::{
-            auth_service::MockAuthService,
-            user_service::MockUserService,
-            venue_service::MockVenueService,
+            auth_service::MockAuthService, conference_service::MockConferenceService,
+            user_service::MockUserService, venue_service::MockVenueService,
         },
     },
     infrastructure::config::Config,
@@ -21,6 +20,7 @@ pub fn test_state(
     user_svc: MockUserService,
     auth_svc: MockAuthService,
     venue_svc: MockVenueService,
+    conference_svc: MockConferenceService,
 ) -> AppState {
     AppState {
         config: Arc::new(Config {
@@ -37,6 +37,7 @@ pub fn test_state(
         auth_service: Arc::new(auth_svc),
         user_service: Arc::new(user_svc),
         venue_service: Arc::new(venue_svc),
+        conference_service: Arc::new(conference_svc),
     }
 }
 

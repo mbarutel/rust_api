@@ -81,8 +81,8 @@ mod tests {
         application::{
             error::AppError,
             service::{
-                auth_service::MockAuthService, user_service::MockUserService,
-                venue_service::MockVenueService,
+                auth_service::MockAuthService, conference_service::MockConferenceService,
+                user_service::MockUserService, venue_service::MockVenueService,
             },
         },
         domain::models::user::User,
@@ -114,6 +114,7 @@ mod tests {
             MockUserService::new(),
             MockAuthService::new(),
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .uri("/api/users")
@@ -133,9 +134,10 @@ mod tests {
             .returning(|_, _| Ok((vec![], 0)));
 
         let app = user_routes().with_state(test_state(
-            MockUserService::new(),
+            user_service,
             MockAuthService::new(),
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
 
         let req = Request::builder()
@@ -158,9 +160,10 @@ mod tests {
         });
 
         let app = user_routes().with_state(test_state(
-            MockUserService::new(),
+            user_service,
             MockAuthService::new(),
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .uri("/api/users/99")
@@ -181,9 +184,10 @@ mod tests {
             .returning(|_| Ok(fake_user()));
 
         let app = user_routes().with_state(test_state(
-            MockUserService::new(),
+            user_service,
             MockAuthService::new(),
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .uri("/api/users/1")
@@ -205,9 +209,10 @@ mod tests {
         });
 
         let app = user_routes().with_state(test_state(
-            MockUserService::new(),
+            user_service,
             MockAuthService::new(),
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
              .method("POST")
@@ -229,6 +234,7 @@ mod tests {
             MockUserService::new(),
             MockAuthService::new(),
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .method("POST")
@@ -250,9 +256,10 @@ mod tests {
         users.expect_delete().once().returning(|_| Ok(()));
 
         let app = user_routes().with_state(test_state(
-            MockUserService::new(),
+            users,
             MockAuthService::new(),
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .method("DELETE")

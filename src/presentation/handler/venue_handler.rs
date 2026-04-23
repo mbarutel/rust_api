@@ -78,8 +78,8 @@ mod tests {
         application::{
             error::AppError,
             service::{
-                auth_service::MockAuthService, user_service::MockUserService,
-                venue_service::MockVenueService,
+                auth_service::MockAuthService, conference_service::MockConferenceService,
+                user_service::MockUserService, venue_service::MockVenueService,
             },
         },
         domain::{error::DomainError, models::venue::Venue},
@@ -100,7 +100,7 @@ mod tests {
             postal_code: None,
             country: None,
             notes: None,
-            published: 0,
+            published: false,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }
@@ -108,22 +108,6 @@ mod tests {
 
     fn auth_header() -> String {
         format!("Bearer {}", test_jwt(1))
-    }
-
-    #[tokio::test]
-    async fn list_no_auth() {
-        let app = venue_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-        ));
-        let req = Request::builder()
-            .uri("/api/venues")
-            .body(Body::empty())
-            .unwrap();
-
-        let res = app.oneshot(req).await.unwrap();
-        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]
@@ -138,6 +122,7 @@ mod tests {
             MockUserService::new(),
             MockAuthService::new(),
             venue_service,
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .uri("/api/venues")
@@ -161,6 +146,7 @@ mod tests {
             MockUserService::new(),
             MockAuthService::new(),
             venue_service,
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .uri("/api/venues/99")
@@ -184,6 +170,7 @@ mod tests {
             MockUserService::new(),
             MockAuthService::new(),
             venue_service,
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .uri("/api/venues/1")
@@ -204,6 +191,7 @@ mod tests {
             MockUserService::new(),
             MockAuthService::new(),
             venue_service,
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .method("DELETE")

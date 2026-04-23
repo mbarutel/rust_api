@@ -3,7 +3,21 @@ use crate::{
         auth_service::AuthService, conference_service::ConferenceService,
         user_service::UserService, venue_service::VenueService,
     },
-    infrastructure::config::Config,
+    infrastructure::{
+        config::Config,
+        database::{
+            pool::create_pool,
+            repository::{
+                conference_repository::DbConferenceRepository,
+                user_repository::DbUserRepository,
+                venue_repository::DbVenueRepository,
+            },
+        },
+        service::{
+            auth_service::AuthServiceImpl, conference_service::ConferenceServiceImpl,
+            user_service::UserServiceImpl, venue_service::VenueServiceImpl,
+        },
+    },
 };
 use sqlx::mysql::MySqlPool;
 use std::sync::Arc;
@@ -18,33 +32,27 @@ pub struct AppState {
     pub conference_service: Arc<dyn ConferenceService>,
 }
 
-// impl AppState {
-//     pub async fn new(config: &Config) -> anyhow::Result<Self> {
-//         // Initialize database connections
-//         let db = MySqlPoolOptions::new()
-//             .max_connections(5)
-//             .acquire_timeout(Duration::from_secs(5))
-//             .connect(&config.database_url)
-//             .await
-//             .context("Failed to connect to database")?;
-//
-//         // InitIalize redis cache client
-//         // let cache = redis::Client::open(&config.redis_url)
-//         // .context("FaileD to connect to Redis");
-//         let config = Arc::new(config.clone());
-//
-//         let user_service = Arc::new(UserServiceImpl::new(db.clone()));
-//         let auth_service = Arc::new(AuthServiceImpl::new(
-//             db.clone(),
-//             config.clone(),
-//             user_service.clone(),
-//         ));
-//
-//         Ok(Self {
-//             config: config.clone(),
-//             db: Some(db.clone()),
-//             auth_service,
-//             user_service,
-//         })
-//     }
-// }
+impl AppState {
+    pub async fn init(config: Arc<Config>) -> anyhow::Result<Self> {
+        let db = create_pool(&config.database_url).await?;
+
+        let user_repo = Arc::new(DbUserRepository::new(db.clone()));
+        let venue_repo = Arc::new(DbVenueRepository::new(db.clone()));
+        let conference_repo = Arc::new(DbConferenceRepository::new(db.clone()));
+
+        let user_service = Arc::new(UserServiceImpl::new(user_repo));
+        let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
+        let venue_service = Arc::new(VenueServiceImpl::new(venue_repo.clone()));
+        let conference_service =
+            Arc::new(ConferenceServiceImpl::new(conference_repo, venue_repo));
+
+        Ok(Self {
+            config,
+            db,
+            auth_service,
+            user_service,
+            venue_service,
+            conference_service,
+        })
+    }
+}

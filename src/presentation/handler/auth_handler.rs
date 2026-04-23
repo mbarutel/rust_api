@@ -50,12 +50,11 @@ mod tests {
             dto::auth_dto::TokenResponse,
             error::AppError,
             service::{
-                auth_service::MockAuthService, user_service::MockUserService,
-                venue_service::MockVenueService,
+                auth_service::MockAuthService, conference_service::MockConferenceService,
+                user_service::MockUserService, venue_service::MockVenueService,
             },
         },
-        presentation::handler::utils::test_state,
-        user_routes,
+        presentation::handler::{auth_handler::auth_routes, utils::test_state},
     };
 
     #[tokio::test]
@@ -67,10 +66,11 @@ mod tests {
             })
         });
 
-        let app = user_routes().with_state(test_state(
+        let app = auth_routes().with_state(test_state(
             MockUserService::new(),
-            MockAuthService::new(),
+            auth,
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .method("POST")
@@ -90,10 +90,11 @@ mod tests {
             .once()
             .returning(|_| Err(AppError::Unauthorized));
 
-        let app = user_routes().with_state(test_state(
+        let app = auth_routes().with_state(test_state(
             MockUserService::new(),
-            MockAuthService::new(),
+            auth,
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .method("POST")
@@ -108,12 +109,11 @@ mod tests {
 
     #[tokio::test]
     async fn login_invalid_email() {
-        let auth = MockAuthService::new();
-
-        let app = user_routes().with_state(test_state(
+        let app = auth_routes().with_state(test_state(
             MockUserService::new(),
             MockAuthService::new(),
             MockVenueService::new(),
+            MockConferenceService::new(),
         ));
         let req = Request::builder()
             .method("POST")
