@@ -111,7 +111,7 @@ pub enum ParticipantRole {
 ```
 
 **Participant entity** — no `created_at`/`updated_at` columns in the schema. The entity struct will not have those fields. This breaks the base `Repository<T>` pattern for `create`/`update` since you can't set timestamps. Either:
-- Add the timestamp columns in a migration (recommended — consistent with all other tables)
+- [X] Add the timestamp columns in a migration (recommended — consistent with all other tables)
 - Or keep it as-is and accept that participants have no audit trail
 
 **Participant repository** — the participant route will typically be nested under a submission: `GET /api/submissions/:id/participants`. Add a domain-specific method:

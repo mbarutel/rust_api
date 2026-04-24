@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS participants (
                          NOT NULL DEFAULT 'delegate',
   dietary_requirements TEXT,
   accessibility_needs  TEXT,
+  created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_submission_client (submission_id, client_id),
   CONSTRAINT fk_sp_submission
     FOREIGN KEY (submission_id) REFERENCES submissions(id)
