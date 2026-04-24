@@ -85,20 +85,19 @@ mod tests {
     };
     use tower::ServiceExt;
 
+    use std::sync::Arc;
+
     use crate::{
         application::{
             error::AppError,
-            service::{
-                auth_service::MockAuthService, conference_service::MockConferenceService,
-                organization_service::MockOrganizationService, user_service::MockUserService,
-                venue_service::MockVenueService,
-            },
+            service::organization_service::MockOrganizationService,
         },
         domain::{error::DomainError, models::organization::Organization},
         presentation::handler::{
             organization_handler::organization_routes,
-            utils::{test_jwt, test_state},
+            utils::test_jwt,
         },
+        state::AppState,
     };
 
     fn fake_organization() -> Organization {
@@ -125,13 +124,10 @@ mod tests {
             .once()
             .returning(|_, _| Ok((vec![], 0)));
 
-        let app = organization_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            org_service,
-        ));
+        let app = organization_routes().with_state(AppState {
+            organization_service: Arc::new(org_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/organizations")
             .body(Body::empty())
@@ -149,13 +145,10 @@ mod tests {
             .once()
             .returning(|_| Ok(fake_organization()));
 
-        let app = organization_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            org_service,
-        ));
+        let app = organization_routes().with_state(AppState {
+            organization_service: Arc::new(org_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/organizations/1")
             .body(Body::empty())
@@ -173,13 +166,10 @@ mod tests {
             .once()
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
-        let app = organization_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            org_service,
-        ));
+        let app = organization_routes().with_state(AppState {
+            organization_service: Arc::new(org_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/organizations/99")
             .body(Body::empty())
@@ -194,13 +184,10 @@ mod tests {
         let mut org_service = MockOrganizationService::new();
         org_service.expect_delete().once().returning(|_| Ok(()));
 
-        let app = organization_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            org_service,
-        ));
+        let app = organization_routes().with_state(AppState {
+            organization_service: Arc::new(org_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .method("DELETE")
             .uri("/api/organizations/1")

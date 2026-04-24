@@ -45,17 +45,16 @@ mod tests {
     };
     use tower::ServiceExt;
 
+    use std::sync::Arc;
+
     use crate::{
         application::{
             dto::auth_dto::TokenResponse,
             error::AppError,
-            service::{
-                auth_service::MockAuthService, conference_service::MockConferenceService,
-                organization_service::MockOrganizationService, user_service::MockUserService,
-                venue_service::MockVenueService,
-            },
+            service::auth_service::MockAuthService,
         },
-        presentation::handler::{auth_handler::auth_routes, utils::test_state},
+        presentation::handler::auth_handler::auth_routes,
+        state::AppState,
     };
 
     #[tokio::test]
@@ -67,14 +66,10 @@ mod tests {
             })
         });
 
-        let app = auth_routes().with_state(test_state(
-            MockUserService::new(),
-            auth,
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = auth_routes().with_state(AppState {
+            auth_service: Arc::new(auth),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")
@@ -93,14 +88,10 @@ mod tests {
             .once()
             .returning(|_| Err(AppError::Unauthorized));
 
-        let app = auth_routes().with_state(test_state(
-            MockUserService::new(),
-            auth,
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = auth_routes().with_state(AppState {
+            auth_service: Arc::new(auth),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")
@@ -114,14 +105,7 @@ mod tests {
 
     #[tokio::test]
     async fn login_invalid_email() {
-        let app = auth_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = auth_routes().with_state(AppState::default());
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")

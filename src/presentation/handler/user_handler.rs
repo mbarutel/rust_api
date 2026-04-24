@@ -77,20 +77,19 @@ mod tests {
     };
     use tower::ServiceExt;
 
+    use std::sync::Arc;
+
     use crate::{
         application::{
             error::AppError,
-            service::{
-                auth_service::MockAuthService, conference_service::MockConferenceService,
-                organization_service::MockOrganizationService, user_service::MockUserService,
-                venue_service::MockVenueService,
-            },
+            service::user_service::MockUserService,
         },
         domain::models::user::User,
         presentation::handler::{
             user_handler::user_routes,
-            utils::{test_jwt, test_state},
+            utils::test_jwt,
         },
+        state::AppState,
     };
 
     fn fake_user() -> User {
@@ -111,14 +110,7 @@ mod tests {
 
     #[tokio::test]
     async fn list_no_auth() {
-        let app = user_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = user_routes().with_state(AppState::default());
         let req = Request::builder()
             .uri("/api/users")
             .body(Body::empty())
@@ -136,15 +128,10 @@ mod tests {
             .once()
             .returning(|_, _| Ok((vec![], 0)));
 
-        let app = user_routes().with_state(test_state(
-            user_service,
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
-
+        let app = user_routes().with_state(AppState {
+            user_service: Arc::new(user_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/users")
             .header("authorization", auth_header())
@@ -164,14 +151,10 @@ mod tests {
             ))
         });
 
-        let app = user_routes().with_state(test_state(
-            user_service,
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = user_routes().with_state(AppState {
+            user_service: Arc::new(user_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/users/99")
             .header("authorization", auth_header())
@@ -190,14 +173,10 @@ mod tests {
             .once()
             .returning(|_| Ok(fake_user()));
 
-        let app = user_routes().with_state(test_state(
-            user_service,
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = user_routes().with_state(AppState {
+            user_service: Arc::new(user_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/users/1")
             .header("authorization", auth_header())
@@ -217,14 +196,10 @@ mod tests {
             ))
         });
 
-        let app = user_routes().with_state(test_state(
-            user_service,
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = user_routes().with_state(AppState {
+            user_service: Arc::new(user_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
              .method("POST")
              .uri("/api/users")
@@ -241,14 +216,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_invalid_body() {
-        let app = user_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = user_routes().with_state(AppState::default());
         let req = Request::builder()
             .method("POST")
             .uri("/api/users")
@@ -268,14 +236,10 @@ mod tests {
         let mut users = MockUserService::new();
         users.expect_delete().once().returning(|_| Ok(()));
 
-        let app = user_routes().with_state(test_state(
-            users,
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = user_routes().with_state(AppState {
+            user_service: Arc::new(users),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .method("DELETE")
             .uri("/api/users/1")

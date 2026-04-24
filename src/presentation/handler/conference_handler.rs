@@ -90,20 +90,19 @@ mod tests {
     };
     use tower::ServiceExt;
 
+    use std::sync::Arc;
+
     use crate::{
         application::{
             error::AppError,
-            service::{
-                auth_service::MockAuthService, conference_service::MockConferenceService,
-                organization_service::MockOrganizationService, user_service::MockUserService,
-                venue_service::MockVenueService,
-            },
+            service::conference_service::MockConferenceService,
         },
         domain::{error::DomainError, models::conference::Conference},
         presentation::handler::{
             conference_handler::conference_routes,
-            utils::{test_jwt, test_state},
+            utils::test_jwt,
         },
+        state::AppState,
     };
 
     fn fake_conference() -> Conference {
@@ -134,14 +133,10 @@ mod tests {
             .once()
             .returning(|_, _| Ok((vec![], 0)));
 
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            conference_service,
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState {
+            conference_service: Arc::new(conference_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/conferences")
             .body(Body::empty())
@@ -159,14 +154,10 @@ mod tests {
             .once()
             .returning(|_| Ok(fake_conference()));
 
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            conference_service,
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState {
+            conference_service: Arc::new(conference_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/conferences/1")
             .body(Body::empty())
@@ -184,14 +175,10 @@ mod tests {
             .once()
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            conference_service,
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState {
+            conference_service: Arc::new(conference_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/conferences/99")
             .body(Body::empty())
@@ -203,14 +190,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_no_auth() {
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState::default());
         let req = Request::builder()
             .method("POST")
             .uri("/api/conferences")
@@ -224,14 +204,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_invalid_body() {
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState::default());
         let req = Request::builder()
             .method("POST")
             .uri("/api/conferences")
@@ -252,14 +225,10 @@ mod tests {
             .once()
             .returning(|_| Ok(fake_conference()));
 
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            conference_service,
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState {
+            conference_service: Arc::new(conference_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .method("POST")
             .uri("/api/conferences")
@@ -274,14 +243,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_no_auth() {
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState::default());
         let req = Request::builder()
             .method("PUT")
             .uri("/api/conferences/1")
@@ -295,14 +257,7 @@ mod tests {
 
     #[tokio::test]
     async fn delete_no_auth() {
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState::default());
         let req = Request::builder()
             .method("DELETE")
             .uri("/api/conferences/1")
@@ -321,14 +276,10 @@ mod tests {
             .once()
             .returning(|_| Ok(()));
 
-        let app = conference_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            MockVenueService::new(),
-            conference_service,
-            MockOrganizationService::new(),
-        ));
-
+        let app = conference_routes().with_state(AppState {
+            conference_service: Arc::new(conference_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .method("DELETE")
             .uri("/api/conferences/1")

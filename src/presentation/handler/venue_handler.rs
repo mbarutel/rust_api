@@ -68,6 +68,8 @@ async fn delete(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use axum::{
         body::Body,
         http::{Request, StatusCode},
@@ -75,19 +77,10 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::{
-                auth_service::MockAuthService, conference_service::MockConferenceService,
-                organization_service::MockOrganizationService, user_service::MockUserService,
-                venue_service::MockVenueService,
-            },
-        },
+        application::{error::AppError, service::venue_service::MockVenueService},
         domain::{error::DomainError, models::venue::Venue},
-        presentation::handler::{
-            utils::{test_jwt, test_state},
-            venue_handler::venue_routes,
-        },
+        presentation::handler::{utils::test_jwt, venue_handler::venue_routes},
+        state::AppState,
     };
 
     fn fake_venue() -> Venue {
@@ -119,14 +112,10 @@ mod tests {
             .once()
             .returning(|_, _| Ok((vec![], 0)));
 
-        let app = venue_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            venue_service,
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = venue_routes().with_state(AppState {
+            venue_service: Arc::new(venue_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/venues")
             .header("authorization", auth_header())
@@ -145,14 +134,10 @@ mod tests {
             .once()
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
-        let app = venue_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            venue_service,
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = venue_routes().with_state(AppState {
+            venue_service: Arc::new(venue_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/venues/99")
             .header("authorization", auth_header())
@@ -171,14 +156,10 @@ mod tests {
             .once()
             .returning(|_| Ok(fake_venue()));
 
-        let app = venue_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            venue_service,
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = venue_routes().with_state(AppState {
+            venue_service: Arc::new(venue_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .uri("/api/venues/1")
             .header("authorization", auth_header())
@@ -194,14 +175,10 @@ mod tests {
         let mut venue_service = MockVenueService::new();
         venue_service.expect_delete().once().returning(|_| Ok(()));
 
-        let app = venue_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            venue_service,
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
+        let app = venue_routes().with_state(AppState {
+            venue_service: Arc::new(venue_service),
+            ..AppState::default()
+        });
         let req = Request::builder()
             .method("DELETE")
             .uri("/api/venues/1")
