@@ -2,28 +2,39 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::get};
 
+use crate::application::dto::organization_dto::{
+    CreateOrganizationRequest, OrganizationResponse, UpdateOrganizationRequest,
+};
 use crate::application::dto::pagination::{ListQueryRequest, PaginatedResponse};
-use crate::application::dto::venue_dto::{CreateVenueRequest, UpdateVenueRequest, VenueResponse};
 use crate::presentation::error::HandlerError;
 use crate::presentation::middleware::auth::AuthUser;
 use crate::presentation::middleware::validated_json::ValidateJson;
 use crate::state::AppState;
 
-pub fn venue_routes() -> Router<AppState> {
+pub fn organization_routes() -> Router<AppState> {
     Router::new()
-        .route("/api/venues", get(list).post(create))
-        .route("/api/venues/{id}", get(find).put(update).delete(delete))
+        .route("/api/organizations", get(list).post(create))
+        .route(
+            "/api/organizations/{id}",
+            get(find).put(update).delete(delete),
+        )
 }
 
 async fn list(
     State(state): State<AppState>,
     Query(query): Query<ListQueryRequest>,
-) -> Result<Json<PaginatedResponse<VenueResponse>>, HandlerError> {
-    let (venues, total) = state.venue_service.list(query.page, query.per_page).await?;
-    let venues = venues.into_iter().map(VenueResponse::from).collect();
+) -> Result<Json<PaginatedResponse<OrganizationResponse>>, HandlerError> {
+    let (organizations, total) = state
+        .organization_service
+        .list(query.page, query.per_page)
+        .await?;
+    let organizations = organizations
+        .into_iter()
+        .map(OrganizationResponse::from)
+        .collect();
 
     Ok(Json(PaginatedResponse {
-        data: venues,
+        data: organizations,
         page: query.page,
         per_page: query.per_page,
         total,
@@ -33,28 +44,28 @@ async fn list(
 async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
-) -> Result<Json<VenueResponse>, HandlerError> {
-    let venue = state.venue_service.find_by_id(id).await?;
-    Ok(Json(VenueResponse::from(venue)))
+) -> Result<Json<OrganizationResponse>, HandlerError> {
+    let organization = state.organization_service.find_by_id(id).await?;
+    Ok(Json(OrganizationResponse::from(organization)))
 }
 
 async fn create(
     State(state): State<AppState>,
     _auth: AuthUser,
-    ValidateJson(dto): ValidateJson<CreateVenueRequest>,
-) -> Result<Json<VenueResponse>, HandlerError> {
-    let venue = state.venue_service.create(dto).await?;
-    Ok(Json(VenueResponse::from(venue)))
+    ValidateJson(dto): ValidateJson<CreateOrganizationRequest>,
+) -> Result<Json<OrganizationResponse>, HandlerError> {
+    let organization = state.organization_service.create(dto).await?;
+    Ok(Json(OrganizationResponse::from(organization)))
 }
 
 async fn update(
     State(state): State<AppState>,
     _auth: AuthUser,
     Path(id): Path<u64>,
-    ValidateJson(dto): ValidateJson<UpdateVenueRequest>,
-) -> Result<Json<VenueResponse>, HandlerError> {
-    let venue = state.venue_service.update(id, dto).await?;
-    Ok(Json(VenueResponse::from(venue)))
+    ValidateJson(dto): ValidateJson<UpdateOrganizationRequest>,
+) -> Result<Json<OrganizationResponse>, HandlerError> {
+    let organization = state.organization_service.update(id, dto).await?;
+    Ok(Json(OrganizationResponse::from(organization)))
 }
 
 async fn delete(
@@ -62,7 +73,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.venue_service.delete(id).await?;
+    state.organization_service.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -83,25 +94,20 @@ mod tests {
                 venue_service::MockVenueService,
             },
         },
-        domain::{error::DomainError, models::venue::Venue},
+        domain::{error::DomainError, models::organization::Organization},
         presentation::handler::{
+            organization_handler::organization_routes,
             utils::{test_jwt, test_state},
-            venue_handler::venue_routes,
         },
     };
 
-    fn fake_venue() -> Venue {
-        Venue {
+    fn fake_organization() -> Organization {
+        Organization {
             id: 1,
-            name: "Convention Center".into(),
-            address_line1: None,
-            address_line2: None,
-            city: None,
-            state_region: None,
-            postal_code: None,
-            country: None,
-            notes: None,
-            published: false,
+            name: "Acme Corp".into(),
+            website: Some("https://acme.com".into()),
+            phone: Some("+14155550000".into()),
+            billing_email: "billing@acme.com".into(),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }
@@ -113,23 +119,45 @@ mod tests {
 
     #[tokio::test]
     async fn list_ok() {
-        let mut venue_service = MockVenueService::new();
-        venue_service
+        let mut org_service = MockOrganizationService::new();
+        org_service
             .expect_list()
             .once()
             .returning(|_, _| Ok((vec![], 0)));
 
-        let app = venue_routes().with_state(test_state(
+        let app = organization_routes().with_state(test_state(
             MockUserService::new(),
             MockAuthService::new(),
-            venue_service,
+            MockVenueService::new(),
             MockConferenceService::new(),
-            MockOrganizationService::new(),
+            org_service,
         ));
-
         let req = Request::builder()
-            .uri("/api/venues")
-            .header("authorization", auth_header())
+            .uri("/api/organizations")
+            .body(Body::empty())
+            .unwrap();
+
+        let res = app.oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn find_ok() {
+        let mut org_service = MockOrganizationService::new();
+        org_service
+            .expect_find_by_id()
+            .once()
+            .returning(|_| Ok(fake_organization()));
+
+        let app = organization_routes().with_state(test_state(
+            MockUserService::new(),
+            MockAuthService::new(),
+            MockVenueService::new(),
+            MockConferenceService::new(),
+            org_service,
+        ));
+        let req = Request::builder()
+            .uri("/api/organizations/1")
             .body(Body::empty())
             .unwrap();
 
@@ -139,23 +167,21 @@ mod tests {
 
     #[tokio::test]
     async fn find_not_found() {
-        let mut venue_service = MockVenueService::new();
-        venue_service
+        let mut org_service = MockOrganizationService::new();
+        org_service
             .expect_find_by_id()
             .once()
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
-        let app = venue_routes().with_state(test_state(
+        let app = organization_routes().with_state(test_state(
             MockUserService::new(),
             MockAuthService::new(),
-            venue_service,
+            MockVenueService::new(),
             MockConferenceService::new(),
-            MockOrganizationService::new(),
+            org_service,
         ));
-
         let req = Request::builder()
-            .uri("/api/venues/99")
-            .header("authorization", auth_header())
+            .uri("/api/organizations/99")
             .body(Body::empty())
             .unwrap();
 
@@ -164,47 +190,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn find_ok() {
-        let mut venue_service = MockVenueService::new();
-        venue_service
-            .expect_find_by_id()
-            .once()
-            .returning(|_| Ok(fake_venue()));
-
-        let app = venue_routes().with_state(test_state(
-            MockUserService::new(),
-            MockAuthService::new(),
-            venue_service,
-            MockConferenceService::new(),
-            MockOrganizationService::new(),
-        ));
-
-        let req = Request::builder()
-            .uri("/api/venues/1")
-            .header("authorization", auth_header())
-            .body(Body::empty())
-            .unwrap();
-
-        let res = app.oneshot(req).await.unwrap();
-        assert_eq!(res.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
     async fn delete_ok() {
-        let mut venue_service = MockVenueService::new();
-        venue_service.expect_delete().once().returning(|_| Ok(()));
+        let mut org_service = MockOrganizationService::new();
+        org_service.expect_delete().once().returning(|_| Ok(()));
 
-        let app = venue_routes().with_state(test_state(
+        let app = organization_routes().with_state(test_state(
             MockUserService::new(),
             MockAuthService::new(),
-            venue_service,
+            MockVenueService::new(),
             MockConferenceService::new(),
-            MockOrganizationService::new(),
+            org_service,
         ));
-
         let req = Request::builder()
             .method("DELETE")
-            .uri("/api/venues/1")
+            .uri("/api/organizations/1")
             .header("authorization", auth_header())
             .body(Body::empty())
             .unwrap();

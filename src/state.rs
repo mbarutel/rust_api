@@ -1,7 +1,8 @@
 use crate::{
     application::service::{
         auth_service::AuthService, conference_service::ConferenceService,
-        user_service::UserService, venue_service::VenueService,
+        organization_service::OrganizationService, user_service::UserService,
+        venue_service::VenueService,
     },
     infrastructure::{
         config::Config,
@@ -9,13 +10,15 @@ use crate::{
             pool::create_pool,
             repository::{
                 conference_repository::DbConferenceRepository,
+                organization_repository::DbOrganizationRepository,
                 user_repository::DbUserRepository,
                 venue_repository::DbVenueRepository,
             },
         },
         service::{
             auth_service::AuthServiceImpl, conference_service::ConferenceServiceImpl,
-            user_service::UserServiceImpl, venue_service::VenueServiceImpl,
+            organization_service::OrganizationServiceImpl, user_service::UserServiceImpl,
+            venue_service::VenueServiceImpl,
         },
     },
 };
@@ -30,6 +33,7 @@ pub struct AppState {
     pub user_service: Arc<dyn UserService>,
     pub venue_service: Arc<dyn VenueService>,
     pub conference_service: Arc<dyn ConferenceService>,
+    pub organization_service: Arc<dyn OrganizationService>,
 }
 
 impl AppState {
@@ -39,12 +43,14 @@ impl AppState {
         let user_repo = Arc::new(DbUserRepository::new(db.clone()));
         let venue_repo = Arc::new(DbVenueRepository::new(db.clone()));
         let conference_repo = Arc::new(DbConferenceRepository::new(db.clone()));
+        let organization_repo = Arc::new(DbOrganizationRepository::new(db.clone()));
 
         let user_service = Arc::new(UserServiceImpl::new(user_repo));
         let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
         let venue_service = Arc::new(VenueServiceImpl::new(venue_repo.clone()));
         let conference_service =
             Arc::new(ConferenceServiceImpl::new(conference_repo, venue_repo));
+        let organization_service = Arc::new(OrganizationServiceImpl::new(organization_repo));
 
         Ok(Self {
             config,
@@ -53,6 +59,7 @@ impl AppState {
             user_service,
             venue_service,
             conference_service,
+            organization_service,
         })
     }
 }

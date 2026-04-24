@@ -51,7 +51,8 @@ mod tests {
             error::AppError,
             service::{
                 auth_service::MockAuthService, conference_service::MockConferenceService,
-                user_service::MockUserService, venue_service::MockVenueService,
+                organization_service::MockOrganizationService, user_service::MockUserService,
+                venue_service::MockVenueService,
             },
         },
         presentation::handler::{auth_handler::auth_routes, utils::test_state},
@@ -71,7 +72,9 @@ mod tests {
             auth,
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")
@@ -95,7 +98,9 @@ mod tests {
             auth,
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")
@@ -114,7 +119,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("POST")
             .uri("/api/auth/login")

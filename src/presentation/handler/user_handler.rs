@@ -82,7 +82,8 @@ mod tests {
             error::AppError,
             service::{
                 auth_service::MockAuthService, conference_service::MockConferenceService,
-                user_service::MockUserService, venue_service::MockVenueService,
+                organization_service::MockOrganizationService, user_service::MockUserService,
+                venue_service::MockVenueService,
             },
         },
         domain::models::user::User,
@@ -115,7 +116,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .uri("/api/users")
             .body(Body::empty())
@@ -138,7 +141,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
 
         let req = Request::builder()
             .uri("/api/users")
@@ -164,7 +169,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .uri("/api/users/99")
             .header("authorization", auth_header())
@@ -188,7 +195,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .uri("/api/users/1")
             .header("authorization", auth_header())
@@ -213,7 +222,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
              .method("POST")
              .uri("/api/users")
@@ -235,7 +246,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("POST")
             .uri("/api/users")
@@ -260,7 +273,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("DELETE")
             .uri("/api/users/1")

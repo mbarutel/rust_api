@@ -27,9 +27,7 @@ impl ConferenceEntity {
 }
 
 impl From<(ConferenceEntity, Option<VenueEntity>)> for Conference {
-    fn from(
-        (conference_entity, venue_entity): (ConferenceEntity, Option<VenueEntity>),
-    ) -> Conference {
+    fn from((conference_entity, venue_entity): (ConferenceEntity, Option<VenueEntity>)) -> Self {
         let published = conference_entity.is_published();
         let venue = venue_entity.map(Venue::from);
 

@@ -95,7 +95,8 @@ mod tests {
             error::AppError,
             service::{
                 auth_service::MockAuthService, conference_service::MockConferenceService,
-                user_service::MockUserService, venue_service::MockVenueService,
+                organization_service::MockOrganizationService, user_service::MockUserService,
+                venue_service::MockVenueService,
             },
         },
         domain::{error::DomainError, models::conference::Conference},
@@ -138,7 +139,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             conference_service,
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .uri("/api/conferences")
             .body(Body::empty())
@@ -161,7 +164,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             conference_service,
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .uri("/api/conferences/1")
             .body(Body::empty())
@@ -184,7 +189,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             conference_service,
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .uri("/api/conferences/99")
             .body(Body::empty())
@@ -201,7 +208,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("POST")
             .uri("/api/conferences")
@@ -220,7 +229,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("POST")
             .uri("/api/conferences")
@@ -246,7 +257,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             conference_service,
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("POST")
             .uri("/api/conferences")
@@ -266,7 +279,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("PUT")
             .uri("/api/conferences/1")
@@ -285,7 +300,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             MockConferenceService::new(),
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("DELETE")
             .uri("/api/conferences/1")
@@ -309,7 +326,9 @@ mod tests {
             MockAuthService::new(),
             MockVenueService::new(),
             conference_service,
+            MockOrganizationService::new(),
         ));
+
         let req = Request::builder()
             .method("DELETE")
             .uri("/api/conferences/1")

@@ -5,7 +5,7 @@ use crate::domain::models::venue::Venue;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateVenueRequest {
-    #[validate(length(min = 1))]
+    #[validate(length(min = 4))]
     pub name: String,
     pub address_line1: Option<String>,
     pub address_line2: Option<String>,
@@ -18,7 +18,7 @@ pub struct CreateVenueRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct UpdateVenueRequest {
-    #[validate(length(min = 1))]
+    #[validate(length(min = 4))]
     pub name: Option<String>,
     pub address_line1: Option<String>,
     pub address_line2: Option<String>,

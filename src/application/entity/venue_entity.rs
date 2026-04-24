@@ -25,7 +25,7 @@ impl VenueEntity {
 }
 
 impl From<VenueEntity> for Venue {
-    fn from(venue_entity: VenueEntity) -> Venue {
+    fn from(venue_entity: VenueEntity) -> Self {
         let published = venue_entity.is_published();
         Venue {
             id: venue_entity.id,
