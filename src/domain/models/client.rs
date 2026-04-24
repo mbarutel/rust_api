@@ -1,0 +1,12 @@
+use chrono::{DateTime, Utc};
+
+#[derive(Debug, Clone)]
+pub struct Client {
+    pub id: u64,
+    pub organization_id: Option<u64>,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}

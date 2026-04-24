@@ -1,14 +1,15 @@
 use crate::{
     application::service::{
-        auth_service::AuthService, conference_service::ConferenceService,
-        organization_service::OrganizationService, user_service::UserService,
-        venue_service::VenueService,
+        auth_service::AuthService, client_service::ClientService,
+        conference_service::ConferenceService, organization_service::OrganizationService,
+        user_service::UserService, venue_service::VenueService,
     },
     infrastructure::{
         config::Config,
         database::{
             pool::create_pool,
             repository::{
+                client_repository::DbClientRepository,
                 conference_repository::DbConferenceRepository,
                 organization_repository::DbOrganizationRepository,
                 user_repository::DbUserRepository,
@@ -16,9 +17,9 @@ use crate::{
             },
         },
         service::{
-            auth_service::AuthServiceImpl, conference_service::ConferenceServiceImpl,
-            organization_service::OrganizationServiceImpl, user_service::UserServiceImpl,
-            venue_service::VenueServiceImpl,
+            auth_service::AuthServiceImpl, client_service::ClientServiceImpl,
+            conference_service::ConferenceServiceImpl, organization_service::OrganizationServiceImpl,
+            user_service::UserServiceImpl, venue_service::VenueServiceImpl,
         },
     },
 };
@@ -30,6 +31,7 @@ pub struct AppState {
     pub config: Arc<Config>,
     pub db: MySqlPool,
     pub auth_service: Arc<dyn AuthService>,
+    pub client_service: Arc<dyn ClientService>,
     pub user_service: Arc<dyn UserService>,
     pub venue_service: Arc<dyn VenueService>,
     pub conference_service: Arc<dyn ConferenceService>,
@@ -40,6 +42,7 @@ impl AppState {
     pub async fn init(config: Arc<Config>) -> anyhow::Result<Self> {
         let db = create_pool(&config.database_url).await?;
 
+        let client_repo = Arc::new(DbClientRepository::new(db.clone()));
         let user_repo = Arc::new(DbUserRepository::new(db.clone()));
         let venue_repo = Arc::new(DbVenueRepository::new(db.clone()));
         let conference_repo = Arc::new(DbConferenceRepository::new(db.clone()));
@@ -47,6 +50,7 @@ impl AppState {
 
         let user_service = Arc::new(UserServiceImpl::new(user_repo));
         let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
+        let client_service = Arc::new(ClientServiceImpl::new(client_repo));
         let venue_service = Arc::new(VenueServiceImpl::new(venue_repo.clone()));
         let conference_service =
             Arc::new(ConferenceServiceImpl::new(conference_repo, venue_repo));
@@ -56,6 +60,7 @@ impl AppState {
             config,
             db,
             auth_service,
+            client_service,
             user_service,
             venue_service,
             conference_service,

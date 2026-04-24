@@ -7,7 +7,7 @@
 ```
 organizations
 └── clients
-    └── submissions ──────────── conferences (existing)
+    └── registrations ──────────── conferences (existing)
         └── participants
             ├── speakers
             ├── sponsors
@@ -77,18 +77,16 @@ pub trait ClientRepository: Repository<ClientEntity> {
 
 ---
 
-## Phase 3 — Submission + Participant
+## Phase 3 — Registration + Participant
 
 Depends on: `conferences`, `clients`
 
 These two are tightly coupled and should be implemented together.
 
-**Submission domain model** — the `status` field should be a Rust enum:
+**Registration domain model** — the `status` field should be a Rust enum:
 ```rust
-pub enum SubmissionStatus {
-    Draft,
+pub enum RegistrationStatus {
     Submitted,
-    UnderReview,
     Accepted,
     Waitlisted,
     Rejected,
@@ -96,9 +94,22 @@ pub enum SubmissionStatus {
 }
 ```
 
-Define this in `domain/models/submission.rs`. The entity stores it as a `String` (sqlx maps MySQL ENUMs to `String`).
+The model also carries `cost: Decimal` and `amount_paid: Decimal`. Payment state is derived, not stored — add a method on the domain model:
+```rust
+pub enum PaymentStatus {
+    Unpaid,   // amount_paid == 0
+    Partial,  // 0 < amount_paid < cost
+    Paid,     // amount_paid >= cost
+}
 
-**Submission service** — add a dedicated `transition_status` method rather than allowing free `update` on status. The service enforces valid transitions (e.g. `Draft → Submitted` is valid, `Accepted → Draft` is not).
+impl Registration {
+    pub fn payment_status(&self) -> PaymentStatus { ... }
+}
+```
+
+Define all of this in `domain/models/registration.rs`. The entity stores both enums as `String` (sqlx maps MySQL ENUMs to `String`).
+
+**Registration service** — add a dedicated `transition_status` method rather than allowing free `update` on status. The service enforces valid transitions (e.g. `Submitted → Accepted` is valid, `Accepted → Submitted` is not). Also expose `record_payment(id, amount)` which updates `amount_paid` and re-derives payment status on read.
 
 **Participant domain model** — `participant_role` is also an enum:
 ```rust
@@ -114,10 +125,10 @@ pub enum ParticipantRole {
 - [X] Add the timestamp columns in a migration (recommended — consistent with all other tables)
 - Or keep it as-is and accept that participants have no audit trail
 
-**Participant repository** — the participant route will typically be nested under a submission: `GET /api/submissions/:id/participants`. Add a domain-specific method:
+**Participant repository** — the participant route will typically be nested under a registration: `GET /api/registrations/:id/participants`. Add a domain-specific method:
 ```rust
 pub trait ParticipantRepository: Repository<ParticipantEntity> {
-    async fn find_by_submission(&self, submission_id: u64) -> Result<Vec<ParticipantEntity>, DomainError>;
+    async fn find_by_registration(&self, registration_id: u64) -> Result<Vec<ParticipantEntity>, DomainError>;
 }
 ```
 
@@ -154,7 +165,7 @@ Same pattern for sponsor and exhibitor.
 
 Depends on: `conferences`, `venues`
 
-These are independent of the submission flow. Implement them in parallel with Phase 4.
+These are independent of the registration flow. Implement them in parallel with Phase 4.
 
 **Activity domain model** — uses `start_at`/`end_at` (not `start_date`/`end_date` like Conference — keep that distinction in the struct field names).
 
@@ -223,12 +234,12 @@ For each completed phase, update:
 |-------|-------|--------|
 | 1 | Organization | No deps, validates the workflow |
 | 2 | Client | Depends only on Org |
-| 3a | Submission | Depends on Conference + Client |
-| 3b | Participant | Depends on Submission + Client |
+| 3a | Registration | Depends on Conference + Client |
+| 3b | Participant | Depends on Registration + Client |
 | 4a | Speaker | Simplest detail record |
 | 4b | Sponsor | Same shape as Speaker |
 | 4c | Exhibitor | Same shape as Speaker |
-| 5a | Activity | Independent of submission flow |
+| 5a | Activity | Independent of registration flow |
 | 5b | Masterclass | Same shape as Activity |
 | 5c | MasterclassInstructor | Via Masterclass service |
 | 6a | ActivityBooking | Via Activity service |

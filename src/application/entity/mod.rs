@@ -1,3 +1,4 @@
+pub mod client_entity;
 pub mod conference_entity;
 pub mod organization_entity;
 pub mod user_entity;

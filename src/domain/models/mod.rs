@@ -1,3 +1,4 @@
+pub mod client;
 pub mod conference;
 pub mod organization;
 pub mod user;

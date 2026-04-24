@@ -1,3 +1,4 @@
+pub mod client_repository;
 pub mod conference_repository;
 mod macros;
 pub mod organization_repository;

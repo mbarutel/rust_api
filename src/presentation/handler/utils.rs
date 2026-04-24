@@ -7,7 +7,8 @@ use crate::{
     application::{
         dto::auth_dto::Claims,
         service::{
-            auth_service::MockAuthService, conference_service::MockConferenceService,
+            auth_service::MockAuthService, client_service::MockClientService,
+            conference_service::MockConferenceService,
             organization_service::MockOrganizationService, user_service::MockUserService,
             venue_service::MockVenueService,
         },
@@ -30,6 +31,7 @@ impl Default for AppState {
                 .connect_lazy("mysql://fake")
                 .unwrap(),
             auth_service: Arc::new(MockAuthService::new()),
+            client_service: Arc::new(MockClientService::new()),
             user_service: Arc::new(MockUserService::new()),
             venue_service: Arc::new(MockVenueService::new()),
             conference_service: Arc::new(MockConferenceService::new()),
