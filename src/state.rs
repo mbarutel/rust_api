@@ -1,7 +1,8 @@
 use crate::{
     application::service::{
-        auth_service::AuthService, client_service::ClientService,
-        conference_service::ConferenceService, exhibitor_service::ExhibitorService,
+        activity_service::ActivityService, auth_service::AuthService,
+        client_service::ClientService, conference_service::ConferenceService,
+        exhibitor_service::ExhibitorService, masterclass_service::MasterclassService,
         organization_service::OrganizationService, participant_service::ParticipantService,
         registration_service::RegistrationService, speaker_service::SpeakerService,
         sponsor_service::SponsorService, user_service::UserService, venue_service::VenueService,
@@ -11,9 +12,13 @@ use crate::{
         database::{
             pool::create_pool,
             repository::{
+                activity_repository::DbActivityRepository,
                 client_repository::DbClientRepository,
                 conference_repository::DbConferenceRepository,
                 exhibitor_repository::DbExhibitorRepository,
+                masterclass_repository::{
+                    DbMasterclassInstructorRepository, DbMasterclassRepository,
+                },
                 organization_repository::DbOrganizationRepository,
                 participant_repository::DbParticipantRepository,
                 registration_repository::DbRegistrationRepository,
@@ -24,16 +29,15 @@ use crate::{
             },
         },
         service::{
-            auth_service::AuthServiceImpl, client_service::ClientServiceImpl,
-            conference_service::ConferenceServiceImpl,
+            activity_service::ActivityServiceImpl, auth_service::AuthServiceImpl,
+            client_service::ClientServiceImpl, conference_service::ConferenceServiceImpl,
             exhibitor_service::ExhibitorServiceImpl,
+            masterclass_service::MasterclassServiceImpl,
             organization_service::OrganizationServiceImpl,
             participant_service::ParticipantServiceImpl,
             registration_service::RegistrationServiceImpl,
-            speaker_service::SpeakerServiceImpl,
-            sponsor_service::SponsorServiceImpl,
-            user_service::UserServiceImpl,
-            venue_service::VenueServiceImpl,
+            speaker_service::SpeakerServiceImpl, sponsor_service::SponsorServiceImpl,
+            user_service::UserServiceImpl, venue_service::VenueServiceImpl,
         },
     },
 };
@@ -44,25 +48,31 @@ use std::sync::Arc;
 pub struct AppState {
     pub config: Arc<Config>,
     pub db: MySqlPool,
+    pub activity_service: Arc<dyn ActivityService>,
     pub auth_service: Arc<dyn AuthService>,
     pub client_service: Arc<dyn ClientService>,
+    pub conference_service: Arc<dyn ConferenceService>,
     pub exhibitor_service: Arc<dyn ExhibitorService>,
+    pub masterclass_service: Arc<dyn MasterclassService>,
+    pub organization_service: Arc<dyn OrganizationService>,
     pub participant_service: Arc<dyn ParticipantService>,
     pub registration_service: Arc<dyn RegistrationService>,
     pub speaker_service: Arc<dyn SpeakerService>,
     pub sponsor_service: Arc<dyn SponsorService>,
     pub user_service: Arc<dyn UserService>,
     pub venue_service: Arc<dyn VenueService>,
-    pub conference_service: Arc<dyn ConferenceService>,
-    pub organization_service: Arc<dyn OrganizationService>,
 }
 
 impl AppState {
     pub async fn init(config: Arc<Config>) -> anyhow::Result<Self> {
         let db = create_pool(&config.database_url).await?;
 
+        let activity_repo = Arc::new(DbActivityRepository::new(db.clone()));
         let client_repo = Arc::new(DbClientRepository::new(db.clone()));
         let exhibitor_repo = Arc::new(DbExhibitorRepository::new(db.clone()));
+        let masterclass_repo = Arc::new(DbMasterclassRepository::new(db.clone()));
+        let masterclass_instructor_repo =
+            Arc::new(DbMasterclassInstructorRepository::new(db.clone()));
         let participant_repo = Arc::new(DbParticipantRepository::new(db.clone()));
         let registration_repo = Arc::new(DbRegistrationRepository::new(db.clone()));
         let speaker_repo = Arc::new(DbSpeakerRepository::new(db.clone()));
@@ -74,8 +84,13 @@ impl AppState {
 
         let user_service = Arc::new(UserServiceImpl::new(user_repo));
         let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
+        let activity_service = Arc::new(ActivityServiceImpl::new(activity_repo));
         let client_service = Arc::new(ClientServiceImpl::new(client_repo));
         let exhibitor_service = Arc::new(ExhibitorServiceImpl::new(exhibitor_repo));
+        let masterclass_service = Arc::new(MasterclassServiceImpl::new(
+            masterclass_repo,
+            masterclass_instructor_repo,
+        ));
         let participant_service = Arc::new(ParticipantServiceImpl::new(participant_repo));
         let registration_service = Arc::new(RegistrationServiceImpl::new(registration_repo));
         let speaker_service = Arc::new(SpeakerServiceImpl::new(speaker_repo));
@@ -88,17 +103,19 @@ impl AppState {
         Ok(Self {
             config,
             db,
+            activity_service,
             auth_service,
             client_service,
+            conference_service,
             exhibitor_service,
+            masterclass_service,
+            organization_service,
             participant_service,
             registration_service,
             speaker_service,
             sponsor_service,
             user_service,
             venue_service,
-            conference_service,
-            organization_service,
         })
     }
 }

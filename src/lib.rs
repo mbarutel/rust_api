@@ -8,9 +8,10 @@ use crate::{
     infrastructure::config::Config,
     presentation::{
         handler::{
-            auth_handler::auth_routes, client_handler::client_routes,
-            conference_handler::conference_routes, exhibitor_handler::exhibitor_routes,
-            health_handler::health_routes, organization_handler::organization_routes,
+            activity_handler::activity_routes, auth_handler::auth_routes,
+            client_handler::client_routes, conference_handler::conference_routes,
+            exhibitor_handler::exhibitor_routes, health_handler::health_routes,
+            masterclass_handler::masterclass_routes, organization_handler::organization_routes,
             participant_handler::participant_routes, registration_handler::registration_routes,
             speaker_handler::speaker_routes, sponsor_handler::sponsor_routes,
             user_handler::user_routes, venue_handler::venue_routes,
@@ -91,17 +92,19 @@ async fn shutdown_signal() {
 pub fn build_router(state: AppState, config: &Config) -> Router {
     let router = Router::new()
         .merge(health_routes())
+        .merge(activity_routes())
         .merge(auth_routes())
         .merge(client_routes())
+        .merge(conference_routes())
         .merge(exhibitor_routes())
+        .merge(masterclass_routes())
         .merge(organization_routes())
         .merge(participant_routes())
         .merge(registration_routes())
         .merge(speaker_routes())
         .merge(sponsor_routes())
         .merge(user_routes())
-        .merge(venue_routes())
-        .merge(conference_routes());
+        .merge(venue_routes());
 
     let router = if config.rate_limiting {
         router.layer(GovernorLayer::new(rate_limit_config()))

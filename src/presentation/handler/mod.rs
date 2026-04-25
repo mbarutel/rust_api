@@ -1,8 +1,10 @@
+pub mod activity_handler;
 pub mod auth_handler;
 pub mod client_handler;
 pub mod conference_handler;
 pub mod exhibitor_handler;
 pub mod health_handler;
+pub mod masterclass_handler;
 pub mod organization_handler;
 pub mod participant_handler;
 pub mod registration_handler;

@@ -1,7 +1,9 @@
+pub mod activity_dto;
 pub mod auth_dto;
 pub mod client_dto;
 pub mod conference_dto;
 pub mod exhibitor_dto;
+pub mod masterclass_dto;
 pub mod organization_dto;
 pub mod pagination;
 pub mod participant_dto;

@@ -1,6 +1,8 @@
+pub mod activity;
 pub mod client;
 pub mod conference;
 pub mod exhibitor;
+pub mod masterclass;
 pub mod organization;
 pub mod participant;
 pub mod registration;
