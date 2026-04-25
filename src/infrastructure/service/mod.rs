@@ -1,6 +1,11 @@
 pub mod auth_service;
 pub mod client_service;
 pub mod conference_service;
+pub mod exhibitor_service;
 pub mod organization_service;
+pub mod participant_service;
+pub mod registration_service;
+pub mod speaker_service;
+pub mod sponsor_service;
 pub mod user_service;
 pub mod venue_service;

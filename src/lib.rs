@@ -9,7 +9,10 @@ use crate::{
     presentation::{
         handler::{
             auth_handler::auth_routes, client_handler::client_routes,
-            conference_handler::conference_routes, health_handler::health_routes,
+            conference_handler::conference_routes, exhibitor_handler::exhibitor_routes,
+            health_handler::health_routes, organization_handler::organization_routes,
+            participant_handler::participant_routes, registration_handler::registration_routes,
+            speaker_handler::speaker_routes, sponsor_handler::sponsor_routes,
             user_handler::user_routes, venue_handler::venue_routes,
         },
         middleware::rate_limiting::rate_limit_config,
@@ -90,6 +93,12 @@ pub fn build_router(state: AppState, config: &Config) -> Router {
         .merge(health_routes())
         .merge(auth_routes())
         .merge(client_routes())
+        .merge(exhibitor_routes())
+        .merge(organization_routes())
+        .merge(participant_routes())
+        .merge(registration_routes())
+        .merge(speaker_routes())
+        .merge(sponsor_routes())
         .merge(user_routes())
         .merge(venue_routes())
         .merge(conference_routes());

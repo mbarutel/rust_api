@@ -11,12 +11,10 @@ CREATE TABLE IF NOT EXISTS registration (
   notes_internal   TEXT,
   created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_registration
-_conf
+  CONSTRAINT fk_registration_conf
     FOREIGN KEY (conference_id) REFERENCES conferences(id)
     ON DELETE CASCADE,
-  CONSTRAINT fk_registration
-_created_by
+  CONSTRAINT fk_registration_created_by
     FOREIGN KEY (created_by_id) REFERENCES clients(id)
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

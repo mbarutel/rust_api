@@ -37,7 +37,8 @@ uuid = { version = "1.22.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 axum-extra = { version = "0.12.5", features = ["typed-header"] }
 jsonwebtoken = { version="10.3.0", features = ["rust_crypto"] }
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-native-tls", "mysql", "chrono", "migrate"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-native-tls", "mysql", "chrono", "migrate", "rust_decimal"] }
+rust_decimal = { version = "1", features = ["serde"] }
 dotenvy = "0.15.7"
 argon2 = "0.5.3"
 tower_governor = "0.8.0"

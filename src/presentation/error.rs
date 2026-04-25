@@ -16,6 +16,7 @@ impl IntoResponse for HandlerError {
         let (status, message) = match &self.0 {
             AppError::Domain(DomainError::NotFound) => (StatusCode::NOT_FOUND, "not found"),
             AppError::Domain(DomainError::Conflict) => (StatusCode::CONFLICT, "already exists"),
+            AppError::Domain(DomainError::InvalidTransition(msg)) => (StatusCode::UNPROCESSABLE_ENTITY, msg.as_str()),
             AppError::Validation(msg) => (StatusCode::UNPROCESSABLE_ENTITY, msg.as_str()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized"),
             AppError::Forbidden => (StatusCode::FORBIDDEN, "forbidden"),

@@ -1,5 +1,10 @@
 pub mod client_entity;
 pub mod conference_entity;
+pub mod exhibitor_entity;
 pub mod organization_entity;
+pub mod participant_entity;
+pub mod registration_entity;
+pub mod speaker_entity;
+pub mod sponsor_entity;
 pub mod user_entity;
 pub mod venue_entity;

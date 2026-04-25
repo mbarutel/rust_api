@@ -1,5 +1,10 @@
 pub mod client;
 pub mod conference;
+pub mod exhibitor;
 pub mod organization;
+pub mod participant;
+pub mod registration;
+pub mod speaker;
+pub mod sponsor;
 pub mod user;
 pub mod venue;

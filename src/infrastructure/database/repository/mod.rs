@@ -1,6 +1,11 @@
 pub mod client_repository;
 pub mod conference_repository;
+pub mod exhibitor_repository;
 mod macros;
 pub mod organization_repository;
+pub mod participant_repository;
+pub mod registration_repository;
+pub mod speaker_repository;
+pub mod sponsor_repository;
 pub mod user_repository;
 pub mod venue_repository;

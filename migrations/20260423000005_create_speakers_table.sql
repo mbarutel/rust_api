@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS speakers (
   av_requirements   TEXT,
   headshot          VARCHAR(512),
   bio               TEXT,
+  created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_speaker_participant
     FOREIGN KEY (participant_id) REFERENCES participants(id)
     ON DELETE CASCADE

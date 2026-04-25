@@ -1,7 +1,12 @@
 pub mod auth_dto;
 pub mod client_dto;
 pub mod conference_dto;
+pub mod exhibitor_dto;
 pub mod organization_dto;
 pub mod pagination;
+pub mod participant_dto;
+pub mod registration_dto;
+pub mod speaker_dto;
+pub mod sponsor_dto;
 pub mod user_dto;
 pub mod venue_dto;
