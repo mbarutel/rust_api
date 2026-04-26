@@ -1,6 +1,8 @@
 pub mod activity_service;
 pub mod auth_service;
 pub mod client_service;
+pub mod conference_form_service;
+pub mod conference_registration_service;
 pub mod conference_service;
 pub mod exhibitor_service;
 pub mod masterclass_service;

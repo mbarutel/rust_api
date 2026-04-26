@@ -4,11 +4,16 @@ use axum::{
     http::StatusCode,
     routing::get,
 };
+use rust_decimal::Decimal;
 
 use crate::{
     application::dto::{
         conference_dto::{ConferenceResponse, CreateConferenceRequest, UpdateConferenceRequest},
         pagination::{ListQueryRequest, PaginatedResponse},
+        registration_dto::{
+            PriceTier, PublicPromoInfo, RegisterDelegateRequest, RegistrationFormData,
+            RegistrationResponse,
+        },
     },
     presentation::{
         error::HandlerError,
@@ -31,6 +36,14 @@ pub fn conference_routes() -> Router<AppState> {
         .route(
             "/api/conferences/{id}/unpublish",
             axum::routing::post(unpublish),
+        )
+        .route(
+            "/api/conferences/{id}/registration-form",
+            axum::routing::get(registration_form),
+        )
+        .route(
+            "/api/conferences/{id}/register/delegate",
+            axum::routing::post(register_delegate),
         )
 }
 
@@ -108,6 +121,45 @@ async fn unpublish(
     Ok(Json(ConferenceResponse::from(conference)))
 }
 
+async fn registration_form(
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+) -> Result<Json<RegistrationFormData>, HandlerError> {
+    // TODO: this needs to go to the registration service
+    let conference = state.conference_service.find_by_id(id).await?;
+    let price_tiers = vec![PriceTier::default(), PriceTier::default()];
+    let active_promos = vec![PublicPromoInfo::default(), PublicPromoInfo::default()];
+    let form_data = RegistrationFormData {
+        conference: ConferenceResponse::from(conference),
+        price_tiers: price_tiers,
+        active_promos: active_promos,
+    };
+
+    Ok(Json(form_data))
+}
+
+async fn register_delegate(
+    State(state): State<AppState>,
+    Json(dto): Json<RegisterDelegateRequest>,
+) -> Result<Json<RegistrationResponse>, HandlerError> {
+    let fake_registation = RegistrationResponse {
+        id: 0,
+        conference_id: 0,
+        status: "fake".to_string(),
+        payment_status: "not_paid".to_string(),
+        cost: Decimal::new(123, 2),
+        discount_code: None,
+        discount_amount: Decimal::new(10, 2),
+        amount_paid: Decimal::new(0, 2),
+        created_by_id: None,
+        notes_internal: Some("random note".to_string()),
+        created_at: chrono::Utc::now().to_string(),
+        updated_at: chrono::Utc::now().to_string(),
+    };
+
+    Ok(Json(fake_registation))
+}
+
 #[cfg(test)]
 mod tests {
     use axum::{
@@ -119,15 +171,9 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::conference_service::MockConferenceService,
-        },
+        application::{error::AppError, service::conference_service::MockConferenceService},
         domain::{error::DomainError, models::conference::Conference},
-        presentation::handler::{
-            conference_handler::conference_routes,
-            utils::test_jwt,
-        },
+        presentation::handler::{conference_handler::conference_routes, utils::test_jwt},
         state::AppState,
     };
 

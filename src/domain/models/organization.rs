@@ -5,6 +5,8 @@ pub struct Organization {
     pub id: u64,
     pub name: String,
     pub website: Option<String>,
+    pub phone: Option<String>,
+    pub billing_email: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

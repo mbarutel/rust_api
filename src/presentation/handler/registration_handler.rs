@@ -4,8 +4,8 @@ use axum::{Json, Router, routing::get};
 
 use crate::application::dto::pagination::{ListQueryRequest, PaginatedResponse};
 use crate::application::dto::registration_dto::{
-    CreateRegistrationRequest, RecordPaymentRequest, RegistrationResponse,
-    TransitionStatusRequest, UpdateRegistrationRequest,
+    CreateRegistrationRequest, RecordPaymentRequest, RegistrationResponse, TransitionStatusRequest,
+    UpdateRegistrationRequest,
 };
 use crate::presentation::error::HandlerError;
 use crate::presentation::middleware::auth::AuthUser;
@@ -19,8 +19,14 @@ pub fn registration_routes() -> Router<AppState> {
             "/api/registrations/{id}",
             get(find).put(update).delete(delete),
         )
-        .route("/api/registrations/{id}/status", axum::routing::put(transition_status))
-        .route("/api/registrations/{id}/payments", axum::routing::post(record_payment))
+        .route(
+            "/api/registrations/{id}/status",
+            axum::routing::put(transition_status),
+        )
+        .route(
+            "/api/registrations/{id}/payments",
+            axum::routing::post(record_payment),
+        )
 }
 
 async fn list(
@@ -86,7 +92,10 @@ async fn transition_status(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<TransitionStatusRequest>,
 ) -> Result<Json<RegistrationResponse>, HandlerError> {
-    let registration = state.registration_service.transition_status(id, dto).await?;
+    let registration = state
+        .registration_service
+        .transition_status(id, dto)
+        .await?;
     Ok(Json(RegistrationResponse::from(registration)))
 }
 
@@ -111,15 +120,9 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::registration_service::MockRegistrationService,
-        },
+        application::{error::AppError, service::registration_service::MockRegistrationService},
         domain::{error::DomainError, models::registration::Registration},
-        presentation::handler::{
-            registration_handler::registration_routes,
-            utils::test_jwt,
-        },
+        presentation::handler::{registration_handler::registration_routes, utils::test_jwt},
         state::AppState,
     };
 
@@ -154,7 +157,12 @@ mod tests {
             ..AppState::default()
         });
         let res = app
-            .oneshot(Request::builder().uri("/api/registrations").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/registrations")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -163,14 +171,21 @@ mod tests {
     #[tokio::test]
     async fn find_ok() {
         let mut svc = MockRegistrationService::new();
-        svc.expect_find_by_id().once().returning(|_| Ok(fake_registration()));
+        svc.expect_find_by_id()
+            .once()
+            .returning(|_| Ok(fake_registration()));
 
         let app = registration_routes().with_state(AppState {
             registration_service: Arc::new(svc),
             ..AppState::default()
         });
         let res = app
-            .oneshot(Request::builder().uri("/api/registrations/1").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/registrations/1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -188,7 +203,12 @@ mod tests {
             ..AppState::default()
         });
         let res = app
-            .oneshot(Request::builder().uri("/api/registrations/99").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/registrations/99")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::NOT_FOUND);
@@ -220,13 +240,11 @@ mod tests {
     #[tokio::test]
     async fn transition_status_invalid() {
         let mut svc = MockRegistrationService::new();
-        svc.expect_transition_status()
-            .once()
-            .returning(|_, _| {
-                Err(AppError::Domain(DomainError::InvalidTransition(
-                    "cannot transition from 'rejected' to 'accepted'".into(),
-                )))
-            });
+        svc.expect_transition_status().once().returning(|_, _| {
+            Err(AppError::Domain(DomainError::InvalidTransition(
+                "cannot transition from 'rejected' to 'accepted'".into(),
+            )))
+        });
 
         let app = registration_routes().with_state(AppState {
             registration_service: Arc::new(svc),

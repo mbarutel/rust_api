@@ -1,8 +1,12 @@
+use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::domain::models::registration::{PaymentStatus, Registration};
+use crate::{
+    application::dto::conference_dto::ConferenceResponse,
+    domain::models::registration::{PaymentStatus, Registration},
+};
 
 // const INITIAL_SUBMISSION: SubmissionType = {
 //   conferenceTitle: undefined,
@@ -68,15 +72,46 @@ struct ParticipantInfo {
     accomodation_nights: u8,
 }
 
+#[derive(Debug, Serialize, Deserialize, Validate, Default)]
+pub struct PriceTier {
+    pub price: Decimal,
+    pub deadline: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub enum DiscountType {
+    #[default]
+    Percent,
+    Fixed,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct PublicPromoInfo {
+    pub id: u64,
+    pub conference_id: u64,
+    pub code: String,
+    pub discount_type: DiscountType,
+    pub amount: Decimal,
+    pub max_uses: Option<u32>,
+    pub used_count: u32,
+    pub valid_until: Option<DateTime<Utc>>,
+}
+
 #[derive(Debug, Deserialize, Validate)]
 pub struct RegisterDelegateRequest {
     pub conference_id: u64,
-    pub cost: Decimal,
+    pub price_tier: PriceTier,
     pub discount_code: Option<String>,
     pub delegates: Vec<ParticipantInfo>,
+    pub referrer: String,
 }
 
-// pub struct RegisterDelegateFormRequest
+#[derive(Debug, Serialize)]
+pub struct RegistrationFormData {
+    pub conference: ConferenceResponse,
+    pub price_tiers: Vec<PriceTier>,
+    pub active_promos: Vec<PublicPromoInfo>,
+}
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateRegistrationRequest {
@@ -117,7 +152,7 @@ pub struct RegistrationResponse {
     pub discount_code: Option<String>,
     pub discount_amount: Decimal,
     pub amount_paid: Decimal,
-    pub created_by_id: Option<u64>,
+    pub created_by_id: Option<u64>, // Note: This should be not be an Option and should return the ClientResponse
     pub notes_internal: Option<String>,
     pub created_at: String,
     pub updated_at: String,
