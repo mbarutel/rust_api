@@ -102,4 +102,30 @@ impl SponsorRepository for DbSponsorRepository {
         .await
         .map_err(map_find_err)
     }
+
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: SponsorEntity,
+    ) -> Result<SponsorEntity, DomainError> {
+        let result = sqlx::query!(
+            "INSERT INTO sponsors (
+                participant_id, tier, company_name, logo_url,
+                invoice_contact, benefits_notes, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            entity.participant_id,
+            entity.tier,
+            entity.company_name,
+            entity.logo_url,
+            entity.invoice_contact,
+            entity.benefits_notes,
+            entity.created_at,
+            entity.updated_at,
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(SponsorEntity { id: result.last_insert_id(), ..entity })
+    }
 }

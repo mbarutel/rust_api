@@ -8,4 +8,9 @@ pub trait ExhibitorRepository: Repository<ExhibitorEntity> {
         &self,
         participant_id: u64,
     ) -> Result<ExhibitorEntity, DomainError>;
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: ExhibitorEntity,
+    ) -> Result<ExhibitorEntity, DomainError>;
 }

@@ -149,4 +149,26 @@ impl ClientRepository for DbClientRepository {
 
         Ok(exists == 1)
     }
+
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: ClientEntity,
+    ) -> Result<ClientEntity, DomainError> {
+        let result = sqlx::query!(
+            "INSERT INTO clients (organization_id, first_name, last_name, email, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?)",
+            entity.organization_id,
+            entity.first_name,
+            entity.last_name,
+            entity.email,
+            entity.created_at,
+            entity.updated_at,
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(ClientEntity { id: result.last_insert_id(), ..entity })
+    }
 }

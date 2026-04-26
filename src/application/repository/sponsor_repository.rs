@@ -8,4 +8,9 @@ pub trait SponsorRepository: Repository<SponsorEntity> {
         &self,
         participant_id: u64,
     ) -> Result<SponsorEntity, DomainError>;
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: SponsorEntity,
+    ) -> Result<SponsorEntity, DomainError>;
 }

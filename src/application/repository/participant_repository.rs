@@ -8,4 +8,9 @@ pub trait ParticipantRepository: Repository<ParticipantEntity> {
         &self,
         registration_id: u64,
     ) -> Result<Vec<ParticipantEntity>, DomainError>;
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: ParticipantEntity,
+    ) -> Result<ParticipantEntity, DomainError>;
 }

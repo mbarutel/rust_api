@@ -137,6 +137,34 @@ impl Repository<RegistrationEntity> for DbRegistrationRepository {
 
 #[async_trait::async_trait]
 impl RegistrationRepository for DbRegistrationRepository {
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: RegistrationEntity,
+    ) -> Result<RegistrationEntity, DomainError> {
+        let result = sqlx::query!(
+            "INSERT INTO registration (
+                conference_id, status, cost, discount_code, discount_amount,
+                amount_paid, created_by_id, notes_internal, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            entity.conference_id,
+            entity.status,
+            entity.cost,
+            entity.discount_code,
+            entity.discount_amount,
+            entity.amount_paid,
+            entity.created_by_id,
+            entity.notes_internal,
+            entity.created_at,
+            entity.updated_at,
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(RegistrationEntity { id: result.last_insert_id(), ..entity })
+    }
+
     async fn find_by_conference(
         &self,
         conference_id: u64,

@@ -124,4 +124,27 @@ impl Repository<OrganizationEntity> for DbOrganizationRepository {
     impl_delete!("organizations");
 }
 
-impl OrganizationRepository for DbOrganizationRepository {}
+#[async_trait::async_trait]
+impl OrganizationRepository for DbOrganizationRepository {
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: OrganizationEntity,
+    ) -> Result<OrganizationEntity, DomainError> {
+        let result = sqlx::query!(
+            "INSERT INTO organizations (name, website, phone, billing_email, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?)",
+            entity.name,
+            entity.website,
+            entity.phone,
+            entity.billing_email,
+            entity.created_at,
+            entity.updated_at,
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(OrganizationEntity { id: result.last_insert_id(), ..entity })
+    }
+}

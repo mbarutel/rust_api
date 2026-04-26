@@ -104,4 +104,29 @@ impl ExhibitorRepository for DbExhibitorRepository {
         .await
         .map_err(map_find_err)
     }
+
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: ExhibitorEntity,
+    ) -> Result<ExhibitorEntity, DomainError> {
+        let result = sqlx::query!(
+            "INSERT INTO exhibitors (
+                participant_id, company_name, power_required, internet_required,
+                notes_internal, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            entity.participant_id,
+            entity.company_name,
+            entity.power_required,
+            entity.internet_required,
+            entity.notes_internal,
+            entity.created_at,
+            entity.updated_at,
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(ExhibitorEntity { id: result.last_insert_id(), ..entity })
+    }
 }

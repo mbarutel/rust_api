@@ -104,4 +104,31 @@ impl SpeakerRepository for DbSpeakerRepository {
         .await
         .map_err(map_find_err)
     }
+
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: SpeakerEntity,
+    ) -> Result<SpeakerEntity, DomainError> {
+        let result = sqlx::query!(
+            "INSERT INTO speakers (
+                participant_id, talk_title, talk_abstract, duration_minutes,
+                av_requirements, headshot, bio, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            entity.participant_id,
+            entity.talk_title,
+            entity.talk_abstract,
+            entity.duration_minutes,
+            entity.av_requirements,
+            entity.headshot,
+            entity.bio,
+            entity.created_at,
+            entity.updated_at,
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(SpeakerEntity { id: result.last_insert_id(), ..entity })
+    }
 }

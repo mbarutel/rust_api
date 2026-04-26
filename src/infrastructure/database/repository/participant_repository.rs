@@ -119,6 +119,31 @@ impl Repository<ParticipantEntity> for DbParticipantRepository {
 
 #[async_trait::async_trait]
 impl ParticipantRepository for DbParticipantRepository {
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: ParticipantEntity,
+    ) -> Result<ParticipantEntity, DomainError> {
+        let result = sqlx::query!(
+            "INSERT INTO participants (
+                registration_id, client_id, participant_role,
+                dietary_requirements, accessibility_needs, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            entity.registration_id,
+            entity.client_id,
+            entity.participant_role,
+            entity.dietary_requirements,
+            entity.accessibility_needs,
+            entity.created_at,
+            entity.updated_at,
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(ParticipantEntity { id: result.last_insert_id(), ..entity })
+    }
+
     async fn find_by_registration(
         &self,
         registration_id: u64,
