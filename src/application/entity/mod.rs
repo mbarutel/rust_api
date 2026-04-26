@@ -1,7 +1,9 @@
+pub mod activity_booking_entity;
 pub mod activity_entity;
 pub mod client_entity;
 pub mod conference_entity;
 pub mod exhibitor_entity;
+pub mod masterclass_booking_entity;
 pub mod masterclass_entity;
 pub mod organization_entity;
 pub mod participant_entity;

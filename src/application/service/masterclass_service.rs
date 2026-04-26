@@ -3,7 +3,10 @@ use crate::{
         dto::masterclass_dto::{CreateMasterclassRequest, UpdateMasterclassRequest},
         error::AppError,
     },
-    domain::models::masterclass::{Masterclass, MasterclassInstructor},
+    domain::models::{
+        masterclass::{Masterclass, MasterclassInstructor},
+        masterclass_booking::MasterclassBooking,
+    },
 };
 
 #[cfg_attr(test, mockall::automock)]
@@ -37,4 +40,23 @@ pub trait MasterclassService: Send + Sync {
         &self,
         masterclass_id: u64,
     ) -> Result<Vec<MasterclassInstructor>, AppError>;
+    async fn book(&self, masterclass_id: u64, participant_id: u64) -> Result<(), AppError>;
+    async fn confirm_booking(
+        &self,
+        masterclass_id: u64,
+        participant_id: u64,
+    ) -> Result<(), AppError>;
+    async fn cancel_booking(
+        &self,
+        masterclass_id: u64,
+        participant_id: u64,
+    ) -> Result<(), AppError>;
+    async fn list_bookings_by_masterclass(
+        &self,
+        masterclass_id: u64,
+    ) -> Result<Vec<MasterclassBooking>, AppError>;
+    async fn list_bookings_by_participant(
+        &self,
+        participant_id: u64,
+    ) -> Result<Vec<MasterclassBooking>, AppError>;
 }

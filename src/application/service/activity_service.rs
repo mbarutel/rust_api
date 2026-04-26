@@ -3,7 +3,7 @@ use crate::{
         dto::activity_dto::{CreateActivityRequest, UpdateActivityRequest},
         error::AppError,
     },
-    domain::models::activity::Activity,
+    domain::models::{activity::Activity, activity_booking::ActivityBooking},
 };
 
 #[cfg_attr(test, mockall::automock)]
@@ -15,4 +15,23 @@ pub trait ActivityService: Send + Sync {
     async fn create(&self, dto: CreateActivityRequest) -> Result<Activity, AppError>;
     async fn update(&self, id: u64, dto: UpdateActivityRequest) -> Result<Activity, AppError>;
     async fn delete(&self, id: u64) -> Result<(), AppError>;
+    async fn book(&self, activity_id: u64, participant_id: u64) -> Result<(), AppError>;
+    async fn confirm_booking(
+        &self,
+        activity_id: u64,
+        participant_id: u64,
+    ) -> Result<(), AppError>;
+    async fn cancel_booking(
+        &self,
+        activity_id: u64,
+        participant_id: u64,
+    ) -> Result<(), AppError>;
+    async fn list_bookings_by_activity(
+        &self,
+        activity_id: u64,
+    ) -> Result<Vec<ActivityBooking>, AppError>;
+    async fn list_bookings_by_participant(
+        &self,
+        participant_id: u64,
+    ) -> Result<Vec<ActivityBooking>, AppError>;
 }

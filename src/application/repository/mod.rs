@@ -1,7 +1,9 @@
+pub mod activity_booking_repository;
 pub mod activity_repository;
 pub mod client_repository;
 pub mod conference_repository;
 pub mod exhibitor_repository;
+pub mod masterclass_booking_repository;
 pub mod masterclass_repository;
 pub mod organization_repository;
 pub mod participant_repository;

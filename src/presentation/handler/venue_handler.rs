@@ -94,7 +94,6 @@ mod tests {
             postal_code: None,
             country: None,
             notes: None,
-            published: false,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }

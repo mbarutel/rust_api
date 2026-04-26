@@ -52,7 +52,6 @@ impl VenueService for VenueServiceImpl {
             postal_code: dto.postal_code,
             country: dto.country,
             notes: dto.notes,
-            published: 0,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
@@ -62,7 +61,6 @@ impl VenueService for VenueServiceImpl {
     async fn update(&self, id: u64, dto: UpdateVenueRequest) -> Result<Venue, AppError> {
         let venue_entity = self.venue_repo.find_by_id(id).await?;
         let venue_entity = VenueEntity {
-            id: venue_entity.id,
             name: dto.name.unwrap_or(venue_entity.name),
             address_line1: dto.address_line1.or(venue_entity.address_line1),
             address_line2: dto.address_line2.or(venue_entity.address_line2),
@@ -71,9 +69,8 @@ impl VenueService for VenueServiceImpl {
             postal_code: dto.postal_code.or(venue_entity.postal_code),
             country: dto.country.or(venue_entity.country),
             notes: dto.notes.or(venue_entity.notes),
-            published: venue_entity.published,
-            created_at: venue_entity.created_at,
             updated_at: Utc::now(),
+            ..venue_entity
         };
         Ok(Venue::from(self.venue_repo.update(venue_entity).await?))
     }

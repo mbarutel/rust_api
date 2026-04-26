@@ -24,6 +24,14 @@ pub fn conference_routes() -> Router<AppState> {
             "/api/conferences/{id}",
             get(find).put(update).delete(delete),
         )
+        .route(
+            "/api/conferences/{id}/publish",
+            axum::routing::post(publish),
+        )
+        .route(
+            "/api/conferences/{id}/unpublish",
+            axum::routing::post(unpublish),
+        )
 }
 
 async fn list(
@@ -80,6 +88,24 @@ async fn delete(
 ) -> Result<StatusCode, HandlerError> {
     state.conference_service.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn publish(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path(id): Path<u64>,
+) -> Result<Json<ConferenceResponse>, HandlerError> {
+    let conference = state.conference_service.publish(id, true).await?;
+    Ok(Json(ConferenceResponse::from(conference)))
+}
+
+async fn unpublish(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path(id): Path<u64>,
+) -> Result<Json<ConferenceResponse>, HandlerError> {
+    let conference = state.conference_service.publish(id, false).await?;
+    Ok(Json(ConferenceResponse::from(conference)))
 }
 
 #[cfg(test)]
@@ -289,5 +315,75 @@ mod tests {
 
         let res = app.oneshot(req).await.unwrap();
         assert_eq!(res.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn publish_ok() {
+        let mut conference_service = MockConferenceService::new();
+        conference_service
+            .expect_publish()
+            .once()
+            .withf(|_, published| *published)
+            .returning(|_, _| Ok(fake_conference()));
+
+        let app = conference_routes().with_state(AppState {
+            conference_service: Arc::new(conference_service),
+            ..AppState::default()
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/conferences/1/publish")
+                    .header("authorization", auth_header())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn unpublish_ok() {
+        let mut conference_service = MockConferenceService::new();
+        conference_service
+            .expect_publish()
+            .once()
+            .withf(|_, published| !published)
+            .returning(|_, _| Ok(fake_conference()));
+
+        let app = conference_routes().with_state(AppState {
+            conference_service: Arc::new(conference_service),
+            ..AppState::default()
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/conferences/1/unpublish")
+                    .header("authorization", auth_header())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn publish_no_auth() {
+        let app = conference_routes().with_state(AppState::default());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/conferences/1/publish")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
     }
 }

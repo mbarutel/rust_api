@@ -2,6 +2,9 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::get};
 
+use crate::application::dto::masterclass_booking_dto::{
+    BookMasterclassRequest, MasterclassBookingResponse,
+};
 use crate::application::dto::masterclass_dto::{
     AddInstructorRequest, MasterclassInstructorResponse, MasterclassResponse,
     CreateMasterclassRequest, UpdateMasterclassRequest,
@@ -30,6 +33,22 @@ pub fn masterclass_routes() -> Router<AppState> {
         .route(
             "/api/masterclasses/{id}/instructors/{participant_id}",
             axum::routing::delete(remove_instructor),
+        )
+        .route(
+            "/api/masterclasses/{id}/bookings",
+            get(list_bookings).post(book),
+        )
+        .route(
+            "/api/masterclasses/{id}/bookings/{participant_id}",
+            axum::routing::delete(cancel_booking),
+        )
+        .route(
+            "/api/masterclasses/{id}/bookings/{participant_id}/confirm",
+            axum::routing::post(confirm_booking),
+        )
+        .route(
+            "/api/participants/{id}/masterclass-bookings",
+            get(list_bookings_by_participant),
         )
 }
 
@@ -141,6 +160,71 @@ async fn remove_instructor(
     Ok(StatusCode::NO_CONTENT)
 }
 
+async fn list_bookings(
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+) -> Result<Json<Vec<MasterclassBookingResponse>>, HandlerError> {
+    let bookings = state
+        .masterclass_service
+        .list_bookings_by_masterclass(id)
+        .await?
+        .into_iter()
+        .map(MasterclassBookingResponse::from)
+        .collect();
+    Ok(Json(bookings))
+}
+
+async fn list_bookings_by_participant(
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+) -> Result<Json<Vec<MasterclassBookingResponse>>, HandlerError> {
+    let bookings = state
+        .masterclass_service
+        .list_bookings_by_participant(id)
+        .await?
+        .into_iter()
+        .map(MasterclassBookingResponse::from)
+        .collect();
+    Ok(Json(bookings))
+}
+
+async fn book(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path(id): Path<u64>,
+    ValidateJson(dto): ValidateJson<BookMasterclassRequest>,
+) -> Result<StatusCode, HandlerError> {
+    state
+        .masterclass_service
+        .book(id, dto.participant_id)
+        .await?;
+    Ok(StatusCode::CREATED)
+}
+
+async fn confirm_booking(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path((id, participant_id)): Path<(u64, u64)>,
+) -> Result<StatusCode, HandlerError> {
+    state
+        .masterclass_service
+        .confirm_booking(id, participant_id)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn cancel_booking(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path((id, participant_id)): Path<(u64, u64)>,
+) -> Result<StatusCode, HandlerError> {
+    state
+        .masterclass_service
+        .cancel_booking(id, participant_id)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -158,7 +242,10 @@ mod tests {
         },
         domain::{
             error::DomainError,
-            models::masterclass::{Masterclass, MasterclassInstructor},
+            models::{
+                masterclass::Masterclass,
+                masterclass_booking::{BookingStatus, MasterclassBooking},
+            },
         },
         presentation::handler::{masterclass_handler::masterclass_routes, utils::test_jwt},
         state::AppState,
@@ -174,6 +261,17 @@ mod tests {
             end_at: chrono::NaiveDateTime::from_timestamp_opt(7200, 0).unwrap(),
             venue_id: None,
             capacity: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    fn fake_booking() -> MasterclassBooking {
+        MasterclassBooking {
+            id: 1,
+            masterclass_id: 1,
+            participant_id: 1,
+            status: BookingStatus::Reserved,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }
@@ -312,6 +410,101 @@ mod tests {
                 Request::builder()
                     .method("DELETE")
                     .uri("/api/masterclasses/1")
+                    .header("authorization", auth_header())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn list_bookings_ok() {
+        let mut svc = MockMasterclassService::new();
+        svc.expect_list_bookings_by_masterclass()
+            .once()
+            .returning(|_| Ok(vec![fake_booking()]));
+
+        let app = masterclass_routes().with_state(AppState {
+            masterclass_service: Arc::new(svc),
+            ..AppState::default()
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/masterclasses/1/bookings")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn book_ok() {
+        let mut svc = MockMasterclassService::new();
+        svc.expect_book().once().returning(|_, _| Ok(()));
+
+        let app = masterclass_routes().with_state(AppState {
+            masterclass_service: Arc::new(svc),
+            ..AppState::default()
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/masterclasses/1/bookings")
+                    .header("authorization", auth_header())
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"participant_id":1}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::CREATED);
+    }
+
+    #[tokio::test]
+    async fn cancel_booking_ok() {
+        let mut svc = MockMasterclassService::new();
+        svc.expect_cancel_booking().once().returning(|_, _| Ok(()));
+
+        let app = masterclass_routes().with_state(AppState {
+            masterclass_service: Arc::new(svc),
+            ..AppState::default()
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri("/api/masterclasses/1/bookings/1")
+                    .header("authorization", auth_header())
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn confirm_booking_ok() {
+        let mut svc = MockMasterclassService::new();
+        svc.expect_confirm_booking()
+            .once()
+            .returning(|_, _| Ok(()));
+
+        let app = masterclass_routes().with_state(AppState {
+            masterclass_service: Arc::new(svc),
+            ..AppState::default()
+        });
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/masterclasses/1/bookings/1/confirm")
                     .header("authorization", auth_header())
                     .body(Body::empty())
                     .unwrap(),

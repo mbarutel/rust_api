@@ -6,19 +6,29 @@ use crate::{
         dto::activity_dto::{CreateActivityRequest, UpdateActivityRequest},
         entity::activity_entity::ActivityEntity,
         error::AppError,
-        repository::activity_repository::ActivityRepository,
+        repository::{
+            activity_booking_repository::ActivityBookingRepository,
+            activity_repository::ActivityRepository,
+        },
         service::activity_service::ActivityService,
     },
-    domain::models::activity::Activity,
+    domain::models::{activity::Activity, activity_booking::ActivityBooking},
 };
 
 pub struct ActivityServiceImpl {
     activity_repo: Arc<dyn ActivityRepository>,
+    booking_repo: Arc<dyn ActivityBookingRepository>,
 }
 
 impl ActivityServiceImpl {
-    pub fn new(activity_repo: Arc<dyn ActivityRepository>) -> Self {
-        Self { activity_repo }
+    pub fn new(
+        activity_repo: Arc<dyn ActivityRepository>,
+        booking_repo: Arc<dyn ActivityBookingRepository>,
+    ) -> Self {
+        Self {
+            activity_repo,
+            booking_repo,
+        }
     }
 }
 
@@ -86,5 +96,57 @@ impl ActivityService for ActivityServiceImpl {
 
     async fn delete(&self, id: u64) -> Result<(), AppError> {
         Ok(self.activity_repo.delete(id).await?)
+    }
+
+    async fn book(&self, activity_id: u64, participant_id: u64) -> Result<(), AppError> {
+        Ok(self.booking_repo.book(activity_id, participant_id).await?)
+    }
+
+    async fn confirm_booking(
+        &self,
+        activity_id: u64,
+        participant_id: u64,
+    ) -> Result<(), AppError> {
+        Ok(self
+            .booking_repo
+            .confirm(activity_id, participant_id)
+            .await?)
+    }
+
+    async fn cancel_booking(
+        &self,
+        activity_id: u64,
+        participant_id: u64,
+    ) -> Result<(), AppError> {
+        Ok(self
+            .booking_repo
+            .cancel(activity_id, participant_id)
+            .await?)
+    }
+
+    async fn list_bookings_by_activity(
+        &self,
+        activity_id: u64,
+    ) -> Result<Vec<ActivityBooking>, AppError> {
+        Ok(self
+            .booking_repo
+            .find_by_activity(activity_id)
+            .await?
+            .into_iter()
+            .map(ActivityBooking::from)
+            .collect())
+    }
+
+    async fn list_bookings_by_participant(
+        &self,
+        participant_id: u64,
+    ) -> Result<Vec<ActivityBooking>, AppError> {
+        Ok(self
+            .booking_repo
+            .find_by_participant(participant_id)
+            .await?
+            .into_iter()
+            .map(ActivityBooking::from)
+            .collect())
     }
 }

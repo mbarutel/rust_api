@@ -1,8 +1,10 @@
 pub mod activity;
+pub mod activity_booking;
 pub mod client;
 pub mod conference;
 pub mod exhibitor;
 pub mod masterclass;
+pub mod masterclass_booking;
 pub mod organization;
 pub mod participant;
 pub mod registration;

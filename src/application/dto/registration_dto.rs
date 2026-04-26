@@ -4,6 +4,80 @@ use validator::Validate;
 
 use crate::domain::models::registration::{PaymentStatus, Registration};
 
+// const INITIAL_SUBMISSION: SubmissionType = {
+//   conferenceTitle: undefined,
+//   selectedConference: undefined,
+//   selectedPriceTier: undefined,
+//   delegates: [
+//     {
+//       firstName: "",
+//       lastName: "",
+//       jobTitle: "",
+//       organization: "",
+//       email: "",
+//       phone: "",
+//       diet: "normal",
+//       dinner: false,
+//       masterclass: null,
+//       accommodationNights: 0,
+//     },
+//   ],
+//   promoCode: "",
+//   reference: "Manager, Family, Friend or Colleague",
+// };
+
+// #[derive(Debug, Deserialize, Validate)]
+// pub struct RegisterDelegateRequest {
+//     pub conference_id: u64,
+//     pub cost: Option<Decimal>,
+//     pub discount_code: Option<String>,
+//     pub discount_amount: Option<Decimal>,
+//     pub main_participant:
+// }
+
+// #[derive(Debug, Deserialize, Validate)]
+// pub struct RegisterSpeakerRequest {
+//     pub conference_id: u64,
+// }
+
+// #[derive(Debug, Deserialize, Validate)]
+// pub struct RegisterExhibitorRequest {
+//     pub conference_id: u64,
+// }
+
+// #[derive(Debug, Deserialize, Validate)]
+// pub struct RegisterSponsorRequest {
+//     pub conference_id: u64,
+// }
+
+// #[derive(Debug, Deserialize, Validate)]
+// pub struct SubmitDelegateRequest {
+//     pub conference_id: u64,
+// }
+#[derive(Debug, Deserialize, Validate)]
+struct ParticipantInfo {
+    first_name: String,
+    last_name: String,
+    job_title: String,
+    organization_name: String,
+    #[validate(email)]
+    email: String,
+    dietary_requirements: String,
+    networking_dinner: bool,
+    masterclass_selection: Option<u64>,
+    accomodation_nights: u8,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct RegisterDelegateRequest {
+    pub conference_id: u64,
+    pub cost: Decimal,
+    pub discount_code: Option<String>,
+    pub delegates: Vec<ParticipantInfo>,
+}
+
+// pub struct RegisterDelegateFormRequest
+
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateRegistrationRequest {
     pub conference_id: u64,

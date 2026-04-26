@@ -6,27 +6,34 @@ use crate::{
         dto::masterclass_dto::{CreateMasterclassRequest, UpdateMasterclassRequest},
         entity::masterclass_entity::MasterclassEntity,
         error::AppError,
+        repository::masterclass_booking_repository::MasterclassBookingRepository,
         repository::masterclass_repository::{
             MasterclassInstructorRepository, MasterclassRepository,
         },
         service::masterclass_service::MasterclassService,
     },
-    domain::models::masterclass::{Masterclass, MasterclassInstructor},
+    domain::models::{
+        masterclass::{Masterclass, MasterclassInstructor},
+        masterclass_booking::MasterclassBooking,
+    },
 };
 
 pub struct MasterclassServiceImpl {
     masterclass_repo: Arc<dyn MasterclassRepository>,
     instructor_repo: Arc<dyn MasterclassInstructorRepository>,
+    booking_repo: Arc<dyn MasterclassBookingRepository>,
 }
 
 impl MasterclassServiceImpl {
     pub fn new(
         masterclass_repo: Arc<dyn MasterclassRepository>,
         instructor_repo: Arc<dyn MasterclassInstructorRepository>,
+        booking_repo: Arc<dyn MasterclassBookingRepository>,
     ) -> Self {
         Self {
             masterclass_repo,
             instructor_repo,
+            booking_repo,
         }
     }
 }
@@ -141,6 +148,58 @@ impl MasterclassService for MasterclassServiceImpl {
             .await?
             .into_iter()
             .map(MasterclassInstructor::from)
+            .collect())
+    }
+
+    async fn book(&self, masterclass_id: u64, participant_id: u64) -> Result<(), AppError> {
+        Ok(self.booking_repo.book(masterclass_id, participant_id).await?)
+    }
+
+    async fn confirm_booking(
+        &self,
+        masterclass_id: u64,
+        participant_id: u64,
+    ) -> Result<(), AppError> {
+        Ok(self
+            .booking_repo
+            .confirm(masterclass_id, participant_id)
+            .await?)
+    }
+
+    async fn cancel_booking(
+        &self,
+        masterclass_id: u64,
+        participant_id: u64,
+    ) -> Result<(), AppError> {
+        Ok(self
+            .booking_repo
+            .cancel(masterclass_id, participant_id)
+            .await?)
+    }
+
+    async fn list_bookings_by_masterclass(
+        &self,
+        masterclass_id: u64,
+    ) -> Result<Vec<MasterclassBooking>, AppError> {
+        Ok(self
+            .booking_repo
+            .find_by_masterclass(masterclass_id)
+            .await?
+            .into_iter()
+            .map(MasterclassBooking::from)
+            .collect())
+    }
+
+    async fn list_bookings_by_participant(
+        &self,
+        participant_id: u64,
+    ) -> Result<Vec<MasterclassBooking>, AppError> {
+        Ok(self
+            .booking_repo
+            .find_by_participant(participant_id)
+            .await?
+            .into_iter()
+            .map(MasterclassBooking::from)
             .collect())
     }
 }

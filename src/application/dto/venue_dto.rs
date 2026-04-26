@@ -27,7 +27,6 @@ pub struct UpdateVenueRequest {
     pub postal_code: Option<String>,
     pub country: Option<String>,
     pub notes: Option<String>,
-    pub published: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -41,26 +40,24 @@ pub struct VenueResponse {
     pub postal_code: Option<String>,
     pub country: Option<String>,
     pub notes: Option<String>,
-    pub published: bool,
     pub created_at: String,
     pub updated_at: String,
 }
 
 impl From<Venue> for VenueResponse {
-    fn from(venue: Venue) -> Self {
+    fn from(v: Venue) -> Self {
         VenueResponse {
-            id: venue.id,
-            name: venue.name,
-            address_line1: venue.address_line1,
-            address_line2: venue.address_line2,
-            city: venue.city,
-            state_region: venue.state_region,
-            postal_code: venue.postal_code,
-            country: venue.country,
-            notes: venue.notes,
-            published: venue.published,
-            created_at: venue.created_at.to_string(),
-            updated_at: venue.updated_at.to_string(),
+            id: v.id,
+            name: v.name,
+            address_line1: v.address_line1,
+            address_line2: v.address_line2,
+            city: v.city,
+            state_region: v.state_region,
+            postal_code: v.postal_code,
+            country: v.country,
+            notes: v.notes,
+            created_at: v.created_at.to_string(),
+            updated_at: v.updated_at.to_string(),
         }
     }
 }

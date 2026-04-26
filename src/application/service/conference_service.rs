@@ -14,4 +14,5 @@ pub trait ConferenceService: Send + Sync {
     async fn create(&self, dto: CreateConferenceRequest) -> Result<Conference, AppError>;
     async fn update(&self, id: u64, dto: UpdateConferenceRequest) -> Result<Conference, AppError>;
     async fn delete(&self, id: u64) -> Result<(), AppError>;
+    async fn publish(&self, id: u64, published: bool) -> Result<Conference, AppError>;
 }

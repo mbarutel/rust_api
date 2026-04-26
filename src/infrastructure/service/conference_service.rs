@@ -125,4 +125,25 @@ impl ConferenceService for ConferenceServiceImpl {
     async fn delete(&self, id: u64) -> Result<(), AppError> {
         Ok(self.conference_repo.delete(id).await?)
     }
+
+    async fn publish(&self, id: u64, published: bool) -> Result<Conference, AppError> {
+        let entity = self.conference_repo.find_by_id(id).await?;
+        let entity = ConferenceEntity {
+            published: published as i8,
+            updated_at: Utc::now(),
+            ..entity
+        };
+        let entity = self.conference_repo.update(entity).await?;
+
+        let venue = match entity.venue_id {
+            Some(vid) => match self.venue_repo.find_by_id(vid).await {
+                Ok(v) => Some(v),
+                Err(DomainError::NotFound) => None,
+                Err(e) => return Err(AppError::Domain(e)),
+            },
+            None => None,
+        };
+
+        Ok(Conference::from((entity, venue)))
+    }
 }

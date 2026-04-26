@@ -12,10 +12,12 @@ use crate::{
         database::{
             pool::create_pool,
             repository::{
+                activity_booking_repository::DbActivityBookingRepository,
                 activity_repository::DbActivityRepository,
                 client_repository::DbClientRepository,
                 conference_repository::DbConferenceRepository,
                 exhibitor_repository::DbExhibitorRepository,
+                masterclass_booking_repository::DbMasterclassBookingRepository,
                 masterclass_repository::{
                     DbMasterclassInstructorRepository, DbMasterclassRepository,
                 },
@@ -67,9 +69,11 @@ impl AppState {
     pub async fn init(config: Arc<Config>) -> anyhow::Result<Self> {
         let db = create_pool(&config.database_url).await?;
 
+        let activity_booking_repo = Arc::new(DbActivityBookingRepository::new(db.clone()));
         let activity_repo = Arc::new(DbActivityRepository::new(db.clone()));
         let client_repo = Arc::new(DbClientRepository::new(db.clone()));
         let exhibitor_repo = Arc::new(DbExhibitorRepository::new(db.clone()));
+        let masterclass_booking_repo = Arc::new(DbMasterclassBookingRepository::new(db.clone()));
         let masterclass_repo = Arc::new(DbMasterclassRepository::new(db.clone()));
         let masterclass_instructor_repo =
             Arc::new(DbMasterclassInstructorRepository::new(db.clone()));
@@ -84,12 +88,14 @@ impl AppState {
 
         let user_service = Arc::new(UserServiceImpl::new(user_repo));
         let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
-        let activity_service = Arc::new(ActivityServiceImpl::new(activity_repo));
+        let activity_service =
+            Arc::new(ActivityServiceImpl::new(activity_repo, activity_booking_repo));
         let client_service = Arc::new(ClientServiceImpl::new(client_repo));
         let exhibitor_service = Arc::new(ExhibitorServiceImpl::new(exhibitor_repo));
         let masterclass_service = Arc::new(MasterclassServiceImpl::new(
             masterclass_repo,
             masterclass_instructor_repo,
+            masterclass_booking_repo,
         ));
         let participant_service = Arc::new(ParticipantServiceImpl::new(participant_repo));
         let registration_service = Arc::new(RegistrationServiceImpl::new(registration_repo));
