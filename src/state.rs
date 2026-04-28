@@ -1,11 +1,19 @@
 use crate::{
     application::service::{
-        activity_service::ActivityService, auth_service::AuthService,
-        client_service::ClientService, conference_service::ConferenceService,
-        exhibitor_service::ExhibitorService, masterclass_service::MasterclassService,
-        organization_service::OrganizationService, participant_service::ParticipantService,
-        registration_service::RegistrationService, speaker_service::SpeakerService,
-        sponsor_service::SponsorService, user_service::UserService, venue_service::VenueService,
+        activity_service::ActivityService,
+        auth_service::AuthService,
+        client_service::ClientService,
+        conference_registration_service::{self, ConferenceRegistrationService},
+        conference_service::ConferenceService,
+        exhibitor_service::ExhibitorService,
+        masterclass_service::MasterclassService,
+        organization_service::OrganizationService,
+        participant_service::ParticipantService,
+        registration_service::RegistrationService,
+        speaker_service::SpeakerService,
+        sponsor_service::SponsorService,
+        user_service::UserService,
+        venue_service::VenueService,
     },
     infrastructure::{
         config::Config,
@@ -32,14 +40,15 @@ use crate::{
         },
         service::{
             activity_service::ActivityServiceImpl, auth_service::AuthServiceImpl,
-            client_service::ClientServiceImpl, conference_service::ConferenceServiceImpl,
-            exhibitor_service::ExhibitorServiceImpl,
+            client_service::ClientServiceImpl,
+            conference_registration_service::ConferenceRegistrationServiceImpl,
+            conference_service::ConferenceServiceImpl, exhibitor_service::ExhibitorServiceImpl,
             masterclass_service::MasterclassServiceImpl,
             organization_service::OrganizationServiceImpl,
             participant_service::ParticipantServiceImpl,
-            registration_service::RegistrationServiceImpl,
-            speaker_service::SpeakerServiceImpl, sponsor_service::SponsorServiceImpl,
-            user_service::UserServiceImpl, venue_service::VenueServiceImpl,
+            registration_service::RegistrationServiceImpl, speaker_service::SpeakerServiceImpl,
+            sponsor_service::SponsorServiceImpl, user_service::UserServiceImpl,
+            venue_service::VenueServiceImpl,
         },
     },
 };
@@ -63,6 +72,7 @@ pub struct AppState {
     pub sponsor_service: Arc<dyn SponsorService>,
     pub user_service: Arc<dyn UserService>,
     pub venue_service: Arc<dyn VenueService>,
+    pub conference_registration_service: Arc<dyn ConferenceRegistrationService>,
 }
 
 impl AppState {
@@ -86,25 +96,35 @@ impl AppState {
         let conference_repo = Arc::new(DbConferenceRepository::new(db.clone()));
         let organization_repo = Arc::new(DbOrganizationRepository::new(db.clone()));
 
-        let user_service = Arc::new(UserServiceImpl::new(user_repo));
+        let user_service = Arc::new(UserServiceImpl::new(user_repo.clone()));
         let auth_service = Arc::new(AuthServiceImpl::new(config.clone(), user_service.clone()));
-        let activity_service =
-            Arc::new(ActivityServiceImpl::new(activity_repo, activity_booking_repo));
-        let client_service = Arc::new(ClientServiceImpl::new(client_repo));
+        let activity_service = Arc::new(ActivityServiceImpl::new(
+            activity_repo,
+            activity_booking_repo,
+        ));
+        let client_service = Arc::new(ClientServiceImpl::new(client_repo.clone()));
         let exhibitor_service = Arc::new(ExhibitorServiceImpl::new(exhibitor_repo));
         let masterclass_service = Arc::new(MasterclassServiceImpl::new(
             masterclass_repo,
             masterclass_instructor_repo,
             masterclass_booking_repo,
         ));
-        let participant_service = Arc::new(ParticipantServiceImpl::new(participant_repo));
-        let registration_service = Arc::new(RegistrationServiceImpl::new(registration_repo));
+        let participant_service = Arc::new(ParticipantServiceImpl::new(participant_repo.clone()));
+        let registration_service =
+            Arc::new(RegistrationServiceImpl::new(registration_repo.clone()));
         let speaker_service = Arc::new(SpeakerServiceImpl::new(speaker_repo));
         let sponsor_service = Arc::new(SponsorServiceImpl::new(sponsor_repo));
         let venue_service = Arc::new(VenueServiceImpl::new(venue_repo.clone()));
-        let conference_service =
-            Arc::new(ConferenceServiceImpl::new(conference_repo, venue_repo));
-        let organization_service = Arc::new(OrganizationServiceImpl::new(organization_repo));
+        let conference_service = Arc::new(ConferenceServiceImpl::new(conference_repo, venue_repo));
+        let organization_service =
+            Arc::new(OrganizationServiceImpl::new(organization_repo.clone()));
+        let conference_registration_service = Arc::new(ConferenceRegistrationServiceImpl::new(
+            db.clone(),
+            organization_repo.clone(),
+            client_repo.clone(),
+            registration_repo.clone(),
+            participant_repo.clone(),
+        ));
 
         Ok(Self {
             config,
@@ -122,6 +142,7 @@ impl AppState {
             sponsor_service,
             user_service,
             venue_service,
+            conference_registration_service,
         })
     }
 }

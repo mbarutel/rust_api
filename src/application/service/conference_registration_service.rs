@@ -3,6 +3,7 @@ use crate::application::{
     error::AppError,
 };
 
+#[async_trait::async_trait]
 pub trait ConferenceRegistrationService: Send + Sync {
     async fn register_delegates(
         &self,

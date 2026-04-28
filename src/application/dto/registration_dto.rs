@@ -59,17 +59,17 @@ use crate::{
 //     pub conference_id: u64,
 // }
 #[derive(Debug, Deserialize, Validate)]
-struct ParticipantInfo {
-    first_name: String,
-    last_name: String,
-    job_title: String,
-    organization_name: String,
+pub struct ParticipantInfo {
+    pub first_name: String,
+    pub last_name: String,
+    pub job_title: String,
+    pub organization_name: String,
     #[validate(email)]
-    email: String,
-    dietary_requirements: String,
-    networking_dinner: bool,
-    masterclass_selection: Option<u64>,
-    accomodation_nights: u8,
+    pub email: String,
+    pub dietary_requirements: String,
+    pub networking_dinner: bool,
+    pub masterclass_selection: Option<u64>,
+    pub accomodation_nights: u8,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate, Default)]
