@@ -11,10 +11,10 @@ use crate::{
         conference_dto::{ConferenceResponse, CreateConferenceRequest, UpdateConferenceRequest},
         pagination::{ListQueryRequest, PaginatedResponse},
         registration_dto::{
-            PriceTier, PublicPromoInfo, RegisterDelegateRequest, RegistrationFormData,
-            RegistrationResponse,
+            PublicPromoInfo, RegisterDelegateRequest, RegistrationFormData, RegistrationResponse,
         },
     },
+    domain::models::price_tier::generate_price_tiers,
     presentation::{
         error::HandlerError,
         middleware::{auth::AuthUser, validated_json::ValidateJson},
@@ -126,7 +126,13 @@ async fn registration_form(
     Path(id): Path<u64>,
 ) -> Result<Json<RegistrationFormData>, HandlerError> {
     let conference = state.conference_service.find_by_id(id).await?;
-    let price_tiers = vec![PriceTier::default(), PriceTier::default()];
+    let price_tiers = generate_price_tiers(
+        conference.start_date.unwrap().date(),
+        Decimal::from(2500),
+        8,
+        Decimal::from(200),
+        false,
+    );
     let active_promos = vec![PublicPromoInfo::default(), PublicPromoInfo::default()];
     let form_data = RegistrationFormData {
         conference: ConferenceResponse::from(conference),

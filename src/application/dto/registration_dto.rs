@@ -5,7 +5,10 @@ use validator::Validate;
 
 use crate::{
     application::dto::conference_dto::ConferenceResponse,
-    domain::models::registration::{PaymentStatus, Registration},
+    domain::models::{
+        price_tier::PriceTier,
+        registration::{PaymentStatus, Registration},
+    },
 };
 
 // const INITIAL_SUBMISSION: SubmissionType = {
@@ -72,11 +75,11 @@ pub struct ParticipantInfo {
     pub accomodation_nights: u8,
 }
 
-#[derive(Debug, Serialize, Deserialize, Validate, Default)]
-pub struct PriceTier {
-    pub price: Decimal,
-    pub deadline: DateTime<Utc>,
-}
+// #[derive(Debug, Serialize, Deserialize, Validate, Default)]
+// pub struct PriceTier {
+//     pub price: Decimal,
+//     pub deadline: DateTime<Utc>,
+// }
 
 #[derive(Debug, Serialize, Default)]
 pub enum DiscountType {
