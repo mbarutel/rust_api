@@ -4,11 +4,14 @@
 So, the registration handler and service for a delegate registration is set, albiet, it still needs more work.
 Here are some things that still need thinking about:
 
-- [ ] What should be the logic for pricetiers? AI is suggesting that it be persisted?
-  - My original idea is to auto calulate it in the form rego. But it may cause undesirable behaviour when the start date of the conference changes. Alternatively, we auto calculate it an conference creation and persist it. When the start date changes, the admin may then choose to re-calculate the price tiers or keep the original one.
+- [ ] PriceTiers will have their own table and point to a conference. Will generate and save at conference creation and on manual trigger.
+  - [ ] price_tier_repository implement
+  - [ ] conference service to generate and save price tiers at creation
+  - [ ] create endpoint on conference for re-generating price tiers
 - [ ] promocodes should be persisted in the backend. The only things to think about is how to implement the Buy X pay for X tickets? AI should be able to help with that.
  
 
 ## API Structure
+- [ ] move trait of repository/ from application. it should just all be in the infrastructure/ layer
 - [ ] API versioning
 - [ ] Redis setup

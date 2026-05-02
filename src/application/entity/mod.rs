@@ -7,6 +7,7 @@ pub mod masterclass_booking_entity;
 pub mod masterclass_entity;
 pub mod organization_entity;
 pub mod participant_entity;
+pub mod price_tier_entity;
 pub mod registration_entity;
 pub mod speaker_entity;
 pub mod sponsor_entity;

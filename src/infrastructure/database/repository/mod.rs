@@ -8,6 +8,7 @@ pub mod masterclass_booking_repository;
 pub mod masterclass_repository;
 pub mod organization_repository;
 pub mod participant_repository;
+pub mod price_tier_repository;
 pub mod registration_repository;
 pub mod speaker_repository;
 pub mod sponsor_repository;

@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct PriceTier {
+    pub id: u64,
+    pub conference_id: u64,
     pub price: Decimal,
     pub deadline: DateTime<Utc>,
 }
