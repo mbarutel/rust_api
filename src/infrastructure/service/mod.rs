@@ -7,7 +7,6 @@ pub mod exhibitor_service;
 pub mod masterclass_service;
 pub mod organization_service;
 pub mod participant_service;
-pub mod price_tier_service;
 pub mod registration_service;
 pub mod speaker_service;
 pub mod sponsor_service;
