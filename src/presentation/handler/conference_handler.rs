@@ -4,7 +4,6 @@ use axum::{
     http::StatusCode,
     routing::get,
 };
-use rust_decimal::Decimal;
 
 use crate::{
     application::dto::{
@@ -14,7 +13,6 @@ use crate::{
             PublicPromoInfo, RegisterDelegateRequest, RegistrationFormData, RegistrationResponse,
         },
     },
-    domain::models::price_tier::generate_price_tiers,
     presentation::{
         error::HandlerError,
         middleware::{auth::AuthUser, validated_json::ValidateJson},
@@ -127,13 +125,17 @@ async fn registration_form(
     Path(id): Path<u64>,
 ) -> Result<Json<RegistrationFormData>, HandlerError> {
     let conference = state.services.conference.find_by_id(id).await?;
-    let price_tiers = generate_price_tiers(
-        conference.start_date.unwrap().date(),
-        Decimal::from(2500),
-        8,
-        Decimal::from(200),
-        false,
-    );
+
+    if conference.start_date.is_none() {
+        return Err(HandlerError(crate::application::error::AppError::Domain(
+            crate::domain::error::DomainError::InvalidTransition(
+                "Registration is not ready for conferences without a start date".to_string(),
+            ),
+        )));
+    }
+
+    let price_tiers = state.services.price // continue from here
+
     let active_promos = vec![PublicPromoInfo::default(), PublicPromoInfo::default()];
     let form_data = RegistrationFormData {
         conference: ConferenceResponse::from(conference),

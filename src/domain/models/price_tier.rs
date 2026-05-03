@@ -24,15 +24,16 @@ pub struct PriceTier {
 }
 
 // Some further work needed for this function. I don't think that it should live here, nor do I think that it should return PriceTier
-pub fn generate_price_tiers(
-    start_date: NaiveDate,
-    walk_in_price: Decimal,
-    steps: usize,
-    discount_per_step: Decimal,
-    is_perscent_discount: bool,
-) -> Vec<PriceTier> {
+pub fn generate_price_tiers(start_date: NaiveDate) -> Vec<PriceTier> {
+    const STEPS: usize = 8;
+    const DISCOUNT_PER_STEP: u8 = 200;
+    const WALK_IN_PRICE: u8 = 2500;
+    const IS_PERCENT_DISCOUNT: bool = false;
+
     let walk_year = start_date.year();
     let walk_month = start_date.month() as i32;
+    let walk_in_price = Decimal::from(WALK_IN_PRICE);
+    let discount_per_step = Decimal::from(DISCOUNT_PER_STEP);
 
     let cutoff_dates = {
         let mut dates: Vec<NaiveDate> = Vec::new();
@@ -48,7 +49,7 @@ pub fn generate_price_tiers(
             for &d in &[end, mid] {
                 if d < start_date {
                     dates.push(d);
-                    if dates.len() >= steps {
+                    if dates.len() >= STEPS {
                         break 'outer;
                     }
                 }
@@ -69,10 +70,10 @@ pub fn generate_price_tiers(
             deadline: date,
             price: calc_price(
                 walk_in_price,
-                steps,
+                STEPS,
                 idx,
                 discount_per_step,
-                is_perscent_discount,
+                IS_PERCENT_DISCOUNT,
             ),
             created_at: now,
             updated_at: now,
@@ -82,7 +83,7 @@ pub fn generate_price_tiers(
     tiers.push(PriceTier {
         id: 0,
         conference_id: 0,
-        price: walk_in_price,
+        price: Decimal::from(WALK_IN_PRICE),
         deadline: start_date,
         created_at: now,
         updated_at: now,

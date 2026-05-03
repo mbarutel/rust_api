@@ -1,3 +1,13 @@
-use crate::application::{entity::conference_entity::ConferenceEntity, repository::Repository};
+use crate::{
+    application::{entity::conference_entity::ConferenceEntity, repository::Repository},
+    domain::error::DomainError,
+};
 
-pub trait ConferenceRepository: Repository<ConferenceEntity> {}
+#[async_trait::async_trait]
+pub trait ConferenceRepository: Repository<ConferenceEntity> {
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: ConferenceEntity,
+    ) -> Result<ConferenceEntity, DomainError>;
+}

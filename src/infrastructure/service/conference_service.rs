@@ -82,6 +82,12 @@ impl ConferenceService for ConferenceServiceImpl {
     }
 
     async fn create(&self, dto: CreateConferenceRequest) -> Result<Conference, AppError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
+
         let now = Utc::now();
 
         let conference_entity = ConferenceEntity {
@@ -99,24 +105,15 @@ impl ConferenceService for ConferenceServiceImpl {
             updated_at: now,
         };
 
-        let conference_entity = self.conference_repo.create(conference_entity).await?;
+        let conference_entity = self
+            .conference_repo
+            .create_in_tx(&mut tx, conference_entity)
+            .await?;
 
         // Continue from here: This is errring
         // A conference could be created but the price tiers fail
         if conference_entity.start_date.is_some() {
-            let mut tx = self
-                .pool
-                .begin()
-                .await
-                .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
-
-            let price_tiers = generate_price_tiers(
-                dto.start_date.unwrap().into(),
-                Decimal::from(2500),
-                8,
-                Decimal::from(200),
-                false,
-            );
+            let price_tiers = generate_price_tiers(dto.start_date.unwrap().into());
             let price_tiers = price_tiers
                 .into_iter()
                 .map(|e| PriceTierEntity {
@@ -129,19 +126,15 @@ impl ConferenceService for ConferenceServiceImpl {
                 })
                 .collect::<Vec<PriceTierEntity>>();
 
-            println!("[did this work?]");
-
             self.price_tier_repo
                 .create_many_in_tx(&mut tx, price_tiers)
                 .await
                 .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
-
-            tx.commit()
-                .await
-                .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
-        } else {
-            println!("[apperantly there is no start_date?]")
         }
+
+        tx.commit()
+            .await
+            .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
 
         Ok(Conference::from((conference_entity, None)))
     }

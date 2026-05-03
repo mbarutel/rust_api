@@ -148,4 +148,50 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
     impl_delete!("conferences");
 }
 
-impl ConferenceRepository for DbConferenceRepository {}
+#[async_trait::async_trait]
+impl ConferenceRepository for DbConferenceRepository {
+    async fn create_in_tx(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entity: ConferenceEntity,
+    ) -> Result<ConferenceEntity, DomainError> {
+        let result = sqlx::query!(
+            "INSERT INTO
+                conferences (
+                    code,
+                    name,
+                    poster_url,
+                    description,
+                    start_date,
+                    end_date,
+                    venue_id,
+                    group_discount_id,
+                    published,
+                    created_at,
+                    updated_at
+                )
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )",
+            entity.code,
+            entity.name,
+            entity.poster_url,
+            entity.description,
+            entity.start_date,
+            entity.end_date,
+            entity.venue_id,
+            entity.group_discount_id,
+            entity.published,
+            entity.created_at,
+            entity.updated_at
+        )
+        .execute(&mut **tx)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(ConferenceEntity {
+            id: result.last_insert_id(),
+            ..entity
+        })
+    }
+}
