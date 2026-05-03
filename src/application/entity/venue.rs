@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::domain::models::venue::Venue;
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct VenueEntity {
     pub id: u64,
     pub name: String,

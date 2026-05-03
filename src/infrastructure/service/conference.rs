@@ -1,13 +1,12 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use chrono::Utc;
-use rust_decimal::Decimal;
 use sqlx::MySqlPool;
 
 use crate::{
     application::{
         dto::conference::{CreateConferenceRequest, UpdateConferenceRequest},
-        entity::{conference::ConferenceEntity, price_tier::PriceTierEntity},
+        entity::{conference::ConferenceEntity, price_tier::PriceTierEntity, venue::VenueEntity},
         error::AppError,
         repository::{
             conference::ConferenceRepository, price_tier::PriceTierRepository,
@@ -50,20 +49,23 @@ impl ConferenceService for ConferenceServiceImpl {
         let offset = (page - 1) * per_page;
         let total = self.conference_repo.count().await?;
         let entities = self.conference_repo.find_all(offset, per_page).await?;
-        let mut conferences = Vec::with_capacity(entities.len());
 
-        for entity in entities {
-            let venue = match entity.venue_id {
-                Some(id) => match self.venue_repo.find_by_id(id).await {
-                    Ok(v) => Some(v),
-                    Err(DomainError::NotFound) => None,
-                    Err(e) => return Err(AppError::Domain(e)),
-                },
-                None => None,
-            };
+        let venue_ids: Vec<u64> = entities.iter().filter_map(|e| e.venue_id).collect();
+        let mut venues: HashMap<u64, VenueEntity> = self
+            .venue_repo
+            .find_by_ids(&venue_ids)
+            .await?
+            .into_iter()
+            .map(|v| (v.id, v))
+            .collect();
 
-            conferences.push(Conference::from((entity, venue)));
-        }
+        let conferences = entities
+            .into_iter()
+            .map(|e| {
+                let venue = e.venue_id.and_then(|id| venues.remove(&id));
+                Conference::from((e, venue))
+            })
+            .collect();
 
         Ok((conferences, total))
     }

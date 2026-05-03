@@ -91,4 +91,26 @@ impl Repository<VenueEntity> for DbVenueRepository {
     impl_delete!("venues");
 }
 
-impl VenueRepository for DbVenueRepository {}
+#[async_trait::async_trait]
+impl VenueRepository for DbVenueRepository {
+    async fn find_by_ids(&self, ids: &[u64]) -> Result<Vec<VenueEntity>, DomainError> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
+        let mut query = sqlx::QueryBuilder::new(
+            "SELECT id, name, address_line1, address_line2, city, state_region,
+             postal_code, country, notes, created_at, updated_at
+             FROM venues WHERE id IN (",
+        );
+        let mut separated = query.separated(", ");
+        for id in ids {
+            separated.push_bind(*id);
+        }
+        separated.push_unseparated(")");
+        query
+            .build_query_as::<VenueEntity>()
+            .fetch_all(&self.pool)
+            .await
+            .map_err(map_db_err)
+    }
+}
