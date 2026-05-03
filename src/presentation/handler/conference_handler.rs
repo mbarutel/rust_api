@@ -52,7 +52,8 @@ async fn list(
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<ConferenceResponse>>, HandlerError> {
     let (conferences, total) = state
-        .conference_service
+        .services
+        .conference
         .list(query.page, query.per_page)
         .await?;
     let conferences = conferences
@@ -71,7 +72,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<ConferenceResponse>, HandlerError> {
-    let conference = state.conference_service.find_by_id(id).await?;
+    let conference = state.services.conference.find_by_id(id).await?;
     Ok(Json(ConferenceResponse::from(conference)))
 }
 
@@ -80,7 +81,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateConferenceRequest>,
 ) -> Result<Json<ConferenceResponse>, HandlerError> {
-    let conference = state.conference_service.create(dto).await?;
+    let conference = state.services.conference.create(dto).await?;
     Ok(Json(ConferenceResponse::from(conference)))
 }
 
@@ -90,7 +91,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateConferenceRequest>,
 ) -> Result<Json<ConferenceResponse>, HandlerError> {
-    let conference = state.conference_service.update(id, dto).await?;
+    let conference = state.services.conference.update(id, dto).await?;
     Ok(Json(ConferenceResponse::from(conference)))
 }
 
@@ -99,7 +100,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.conference_service.delete(id).await?;
+    state.services.conference.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -108,7 +109,7 @@ async fn publish(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<Json<ConferenceResponse>, HandlerError> {
-    let conference = state.conference_service.publish(id, true).await?;
+    let conference = state.services.conference.publish(id, true).await?;
     Ok(Json(ConferenceResponse::from(conference)))
 }
 
@@ -117,7 +118,7 @@ async fn unpublish(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<Json<ConferenceResponse>, HandlerError> {
-    let conference = state.conference_service.publish(id, false).await?;
+    let conference = state.services.conference.publish(id, false).await?;
     Ok(Json(ConferenceResponse::from(conference)))
 }
 
@@ -125,7 +126,7 @@ async fn registration_form(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<RegistrationFormData>, HandlerError> {
-    let conference = state.conference_service.find_by_id(id).await?;
+    let conference = state.services.conference.find_by_id(id).await?;
     let price_tiers = generate_price_tiers(
         conference.start_date.unwrap().date(),
         Decimal::from(2500),
@@ -148,7 +149,8 @@ async fn register_delegate(
     Json(dto): Json<RegisterDelegateRequest>,
 ) -> Result<Json<RegistrationResponse>, HandlerError> {
     let registration = state
-        .conference_registration_service
+        .services
+        .conference_registration
         .register_delegates(dto)
         .await?;
 
@@ -169,7 +171,7 @@ mod tests {
         application::{error::AppError, service::conference_service::MockConferenceService},
         domain::{error::DomainError, models::conference::Conference},
         presentation::handler::{conference_handler::conference_routes, utils::test_jwt},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_conference() -> Conference {
@@ -201,7 +203,10 @@ mod tests {
             .returning(|_, _| Ok((vec![], 0)));
 
         let app = conference_routes().with_state(AppState {
-            conference_service: Arc::new(conference_service),
+            services: Services {
+                conference: Arc::new(conference_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -222,7 +227,10 @@ mod tests {
             .returning(|_| Ok(fake_conference()));
 
         let app = conference_routes().with_state(AppState {
-            conference_service: Arc::new(conference_service),
+            services: Services {
+                conference: Arc::new(conference_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -243,7 +251,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = conference_routes().with_state(AppState {
-            conference_service: Arc::new(conference_service),
+            services: Services {
+                conference: Arc::new(conference_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -293,7 +304,10 @@ mod tests {
             .returning(|_| Ok(fake_conference()));
 
         let app = conference_routes().with_state(AppState {
-            conference_service: Arc::new(conference_service),
+            services: Services {
+                conference: Arc::new(conference_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -344,7 +358,10 @@ mod tests {
             .returning(|_| Ok(()));
 
         let app = conference_routes().with_state(AppState {
-            conference_service: Arc::new(conference_service),
+            services: Services {
+                conference: Arc::new(conference_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -368,7 +385,10 @@ mod tests {
             .returning(|_, _| Ok(fake_conference()));
 
         let app = conference_routes().with_state(AppState {
-            conference_service: Arc::new(conference_service),
+            services: Services {
+                conference: Arc::new(conference_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -395,7 +415,10 @@ mod tests {
             .returning(|_, _| Ok(fake_conference()));
 
         let app = conference_routes().with_state(AppState {
-            conference_service: Arc::new(conference_service),
+            services: Services {
+                conference: Arc::new(conference_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app

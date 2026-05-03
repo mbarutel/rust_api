@@ -6,8 +6,8 @@ use crate::application::dto::masterclass_booking_dto::{
     BookMasterclassRequest, MasterclassBookingResponse,
 };
 use crate::application::dto::masterclass_dto::{
-    AddInstructorRequest, MasterclassInstructorResponse, MasterclassResponse,
-    CreateMasterclassRequest, UpdateMasterclassRequest,
+    AddInstructorRequest, CreateMasterclassRequest, MasterclassInstructorResponse,
+    MasterclassResponse, UpdateMasterclassRequest,
 };
 use crate::application::dto::pagination::{ListQueryRequest, PaginatedResponse};
 use crate::presentation::error::HandlerError;
@@ -57,7 +57,8 @@ async fn list(
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<MasterclassResponse>>, HandlerError> {
     let (masterclasses, total) = state
-        .masterclass_service
+        .services
+        .masterclass
         .list(query.page, query.per_page)
         .await?;
     Ok(Json(PaginatedResponse {
@@ -76,7 +77,8 @@ async fn list_by_conference(
     Path(id): Path<u64>,
 ) -> Result<Json<Vec<MasterclassResponse>>, HandlerError> {
     let masterclasses = state
-        .masterclass_service
+        .services
+        .masterclass
         .find_by_conference(id)
         .await?
         .into_iter()
@@ -89,7 +91,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<MasterclassResponse>, HandlerError> {
-    let masterclass = state.masterclass_service.find_by_id(id).await?;
+    let masterclass = state.services.masterclass.find_by_id(id).await?;
     Ok(Json(MasterclassResponse::from(masterclass)))
 }
 
@@ -98,7 +100,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateMasterclassRequest>,
 ) -> Result<Json<MasterclassResponse>, HandlerError> {
-    let masterclass = state.masterclass_service.create(dto).await?;
+    let masterclass = state.services.masterclass.create(dto).await?;
     Ok(Json(MasterclassResponse::from(masterclass)))
 }
 
@@ -108,7 +110,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateMasterclassRequest>,
 ) -> Result<Json<MasterclassResponse>, HandlerError> {
-    let masterclass = state.masterclass_service.update(id, dto).await?;
+    let masterclass = state.services.masterclass.update(id, dto).await?;
     Ok(Json(MasterclassResponse::from(masterclass)))
 }
 
@@ -117,7 +119,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.masterclass_service.delete(id).await?;
+    state.services.masterclass.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -126,7 +128,8 @@ async fn list_instructors(
     Path(id): Path<u64>,
 ) -> Result<Json<Vec<MasterclassInstructorResponse>>, HandlerError> {
     let instructors = state
-        .masterclass_service
+        .services
+        .masterclass
         .list_instructors(id)
         .await?
         .into_iter()
@@ -142,7 +145,8 @@ async fn add_instructor(
     ValidateJson(dto): ValidateJson<AddInstructorRequest>,
 ) -> Result<StatusCode, HandlerError> {
     state
-        .masterclass_service
+        .services
+        .masterclass
         .add_instructor(id, dto.participant_id, dto.is_lead.unwrap_or(false))
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -154,7 +158,8 @@ async fn remove_instructor(
     Path((id, participant_id)): Path<(u64, u64)>,
 ) -> Result<StatusCode, HandlerError> {
     state
-        .masterclass_service
+        .services
+        .masterclass
         .remove_instructor(id, participant_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -165,7 +170,8 @@ async fn list_bookings(
     Path(id): Path<u64>,
 ) -> Result<Json<Vec<MasterclassBookingResponse>>, HandlerError> {
     let bookings = state
-        .masterclass_service
+        .services
+        .masterclass
         .list_bookings_by_masterclass(id)
         .await?
         .into_iter()
@@ -179,7 +185,8 @@ async fn list_bookings_by_participant(
     Path(id): Path<u64>,
 ) -> Result<Json<Vec<MasterclassBookingResponse>>, HandlerError> {
     let bookings = state
-        .masterclass_service
+        .services
+        .masterclass
         .list_bookings_by_participant(id)
         .await?
         .into_iter()
@@ -195,7 +202,8 @@ async fn book(
     ValidateJson(dto): ValidateJson<BookMasterclassRequest>,
 ) -> Result<StatusCode, HandlerError> {
     state
-        .masterclass_service
+        .services
+        .masterclass
         .book(id, dto.participant_id)
         .await?;
     Ok(StatusCode::CREATED)
@@ -207,7 +215,8 @@ async fn confirm_booking(
     Path((id, participant_id)): Path<(u64, u64)>,
 ) -> Result<StatusCode, HandlerError> {
     state
-        .masterclass_service
+        .services
+        .masterclass
         .confirm_booking(id, participant_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -219,7 +228,8 @@ async fn cancel_booking(
     Path((id, participant_id)): Path<(u64, u64)>,
 ) -> Result<StatusCode, HandlerError> {
     state
-        .masterclass_service
+        .services
+        .masterclass
         .cancel_booking(id, participant_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -236,10 +246,7 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::masterclass_service::MockMasterclassService,
-        },
+        application::{error::AppError, service::masterclass_service::MockMasterclassService},
         domain::{
             error::DomainError,
             models::{
@@ -248,7 +255,7 @@ mod tests {
             },
         },
         presentation::handler::{masterclass_handler::masterclass_routes, utils::test_jwt},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_masterclass() -> Masterclass {
@@ -287,7 +294,10 @@ mod tests {
         svc.expect_list().once().returning(|_, _| Ok((vec![], 0)));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -310,7 +320,10 @@ mod tests {
             .returning(|_| Ok(fake_masterclass()));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -333,7 +346,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -356,7 +372,10 @@ mod tests {
             .returning(|_| Ok(vec![]));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -379,7 +398,10 @@ mod tests {
             .returning(|_, _| Ok(()));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -402,7 +424,10 @@ mod tests {
         svc.expect_delete().once().returning(|_| Ok(()));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -427,7 +452,10 @@ mod tests {
             .returning(|_| Ok(vec![fake_booking()]));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -448,7 +476,10 @@ mod tests {
         svc.expect_book().once().returning(|_, _| Ok(()));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -472,7 +503,10 @@ mod tests {
         svc.expect_cancel_booking().once().returning(|_, _| Ok(()));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -492,12 +526,13 @@ mod tests {
     #[tokio::test]
     async fn confirm_booking_ok() {
         let mut svc = MockMasterclassService::new();
-        svc.expect_confirm_booking()
-            .once()
-            .returning(|_, _| Ok(()));
+        svc.expect_confirm_booking().once().returning(|_, _| Ok(()));
 
         let app = masterclass_routes().with_state(AppState {
-            masterclass_service: Arc::new(svc),
+            services: Services {
+                masterclass: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app

@@ -81,6 +81,7 @@ impl ConferenceService for ConferenceServiceImpl {
             start_date: dto.start_date,
             end_date: dto.end_date,
             venue_id: None,
+            group_discount_id: None,
             published: 0,
             created_at: now,
             updated_at: now,
@@ -103,6 +104,9 @@ impl ConferenceService for ConferenceServiceImpl {
             start_date: dto.start_date.or(conference_entity.start_date),
             end_date: dto.end_date.or(conference_entity.end_date),
             venue_id: dto.venue_id.or(conference_entity.venue_id),
+            group_discount_id: dto
+                .group_discount_id
+                .or(conference_entity.group_discount_id),
             published: conference_entity.published,
             created_at: conference_entity.created_at,
             updated_at: now,

@@ -60,6 +60,8 @@ pub fn generate_price_tiers(
         .iter()
         .enumerate()
         .map(|(idx, &date)| PriceTier {
+            id: 0,
+            conference_id: 0,
             deadline: date.and_time(NaiveTime::MIN).and_utc(),
             price: calc_price(
                 walk_in_price,
@@ -72,6 +74,8 @@ pub fn generate_price_tiers(
         .collect();
 
     tiers.push(PriceTier {
+        id: 0,
+        conference_id: 0,
         price: walk_in_price,
         deadline: start_date.and_time(NaiveTime::MIN).and_utc(),
     });

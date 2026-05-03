@@ -8,7 +8,7 @@ use crate::presentation::middleware::validated_json::ValidateJson;
 
 use crate::presentation::error::HandlerError;
 use crate::presentation::middleware::auth::AuthUser;
-use crate::state::AppState;
+use crate::state::{AppState, Services};
 
 pub fn user_routes() -> Router<AppState> {
     Router::new()
@@ -21,7 +21,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateUserRequest>,
 ) -> Result<Json<UserResponse>, HandlerError> {
-    let user = state.user_service.create(dto).await?;
+    let user = state.services.user.create(dto).await?;
     Ok(Json(UserResponse::from(user)))
 }
 
@@ -31,7 +31,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateUserRequest>,
 ) -> Result<Json<UserResponse>, HandlerError> {
-    let user = state.user_service.update(id, dto).await?;
+    let user = state.services.user.update(id, dto).await?;
     Ok(Json(UserResponse::from(user)))
 }
 
@@ -40,7 +40,7 @@ async fn list(
     _auth: AuthUser,
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<UserResponse>>, HandlerError> {
-    let (users, total) = state.user_service.list(query.page, query.per_page).await?;
+    let (users, total) = state.services.user.list(query.page, query.per_page).await?;
     let users = users.into_iter().map(UserResponse::from).collect();
 
     Ok(Json(PaginatedResponse {
@@ -56,7 +56,7 @@ async fn find(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<Json<UserResponse>, HandlerError> {
-    let user = state.user_service.find_by_id(id).await?;
+    let user = state.services.user.find_by_id(id).await?;
     Ok(Json(UserResponse::from(user)))
 }
 
@@ -65,7 +65,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.user_service.delete(id).await?;
+    state.services.user.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -89,7 +89,7 @@ mod tests {
             user_handler::user_routes,
             utils::test_jwt,
         },
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_user() -> User {
@@ -129,7 +129,10 @@ mod tests {
             .returning(|_, _| Ok((vec![], 0)));
 
         let app = user_routes().with_state(AppState {
-            user_service: Arc::new(user_service),
+            services: Services {
+                user: Arc::new(user_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -152,7 +155,10 @@ mod tests {
         });
 
         let app = user_routes().with_state(AppState {
-            user_service: Arc::new(user_service),
+            services: Services {
+                user: Arc::new(user_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -174,7 +180,10 @@ mod tests {
             .returning(|_| Ok(fake_user()));
 
         let app = user_routes().with_state(AppState {
-            user_service: Arc::new(user_service),
+            services: Services {
+                user: Arc::new(user_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -197,7 +206,10 @@ mod tests {
         });
 
         let app = user_routes().with_state(AppState {
-            user_service: Arc::new(user_service),
+            services: Services {
+                user: Arc::new(user_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -237,7 +249,10 @@ mod tests {
         users.expect_delete().once().returning(|_| Ok(()));
 
         let app = user_routes().with_state(AppState {
-            user_service: Arc::new(users),
+            services: Services {
+                user: Arc::new(users),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()

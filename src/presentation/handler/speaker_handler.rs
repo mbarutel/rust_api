@@ -21,7 +21,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<SpeakerResponse>, HandlerError> {
-    let speaker = state.speaker_service.find_by_participant_id(id).await?;
+    let speaker = state.services.speaker.find_by_participant_id(id).await?;
     Ok(Json(SpeakerResponse::from(speaker)))
 }
 
@@ -31,7 +31,7 @@ async fn create(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<CreateSpeakerRequest>,
 ) -> Result<Json<SpeakerResponse>, HandlerError> {
-    let speaker = state.speaker_service.create(id, dto).await?;
+    let speaker = state.services.speaker.create(id, dto).await?;
     Ok(Json(SpeakerResponse::from(speaker)))
 }
 
@@ -41,7 +41,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateSpeakerRequest>,
 ) -> Result<Json<SpeakerResponse>, HandlerError> {
-    let speaker = state.speaker_service.update(id, dto).await?;
+    let speaker = state.services.speaker.update(id, dto).await?;
     Ok(Json(SpeakerResponse::from(speaker)))
 }
 
@@ -50,7 +50,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.speaker_service.delete(id).await?;
+    state.services.speaker.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -65,13 +65,10 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::speaker_service::MockSpeakerService,
-        },
+        application::{error::AppError, service::speaker_service::MockSpeakerService},
         domain::{error::DomainError, models::speaker::Speaker},
         presentation::handler::{speaker_handler::speaker_routes, utils::test_jwt},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_speaker() -> Speaker {
@@ -101,7 +98,10 @@ mod tests {
             .returning(|_| Ok(fake_speaker()));
 
         let app = speaker_routes().with_state(AppState {
-            speaker_service: Arc::new(svc),
+            services: Services {
+                speaker: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -124,7 +124,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = speaker_routes().with_state(AppState {
-            speaker_service: Arc::new(svc),
+            services: Services {
+                speaker: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -145,7 +148,10 @@ mod tests {
         svc.expect_delete().once().returning(|_| Ok(()));
 
         let app = speaker_routes().with_state(AppState {
-            speaker_service: Arc::new(svc),
+            services: Services {
+                speaker: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app

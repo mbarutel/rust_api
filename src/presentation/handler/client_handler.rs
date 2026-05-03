@@ -2,7 +2,9 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::{Json, Router, routing::get};
 
-use crate::application::dto::client_dto::{ClientResponse, CreateClientRequest, UpdateClientRequest};
+use crate::application::dto::client_dto::{
+    ClientResponse, CreateClientRequest, UpdateClientRequest,
+};
 use crate::application::dto::pagination::{ListQueryRequest, PaginatedResponse};
 use crate::presentation::error::HandlerError;
 use crate::presentation::middleware::auth::AuthUser;
@@ -19,7 +21,11 @@ async fn list(
     State(state): State<AppState>,
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<ClientResponse>>, HandlerError> {
-    let (clients, total) = state.client_service.list(query.page, query.per_page).await?;
+    let (clients, total) = state
+        .services
+        .client
+        .list(query.page, query.per_page)
+        .await?;
     let clients = clients.into_iter().map(ClientResponse::from).collect();
 
     Ok(Json(PaginatedResponse {
@@ -34,7 +40,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<ClientResponse>, HandlerError> {
-    let client = state.client_service.find_by_id(id).await?;
+    let client = state.services.client.find_by_id(id).await?;
     Ok(Json(ClientResponse::from(client)))
 }
 
@@ -43,7 +49,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateClientRequest>,
 ) -> Result<Json<ClientResponse>, HandlerError> {
-    let client = state.client_service.create(dto).await?;
+    let client = state.services.client.create(dto).await?;
     Ok(Json(ClientResponse::from(client)))
 }
 
@@ -53,7 +59,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateClientRequest>,
 ) -> Result<Json<ClientResponse>, HandlerError> {
-    let client = state.client_service.update(id, dto).await?;
+    let client = state.services.client.update(id, dto).await?;
     Ok(Json(ClientResponse::from(client)))
 }
 
@@ -62,7 +68,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.client_service.delete(id).await?;
+    state.services.client.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -77,13 +83,10 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::client_service::MockClientService,
-        },
+        application::{error::AppError, service::client_service::MockClientService},
         domain::{error::DomainError, models::client::Client},
         presentation::handler::{client_handler::client_routes, utils::test_jwt},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_client() -> Client {
@@ -111,7 +114,10 @@ mod tests {
             .returning(|_, _| Ok((vec![], 0)));
 
         let app = client_routes().with_state(AppState {
-            client_service: Arc::new(client_service),
+            services: Services {
+                client: Arc::new(client_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -132,7 +138,10 @@ mod tests {
             .returning(|_| Ok(fake_client()));
 
         let app = client_routes().with_state(AppState {
-            client_service: Arc::new(client_service),
+            services: Services {
+                client: Arc::new(client_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -153,7 +162,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = client_routes().with_state(AppState {
-            client_service: Arc::new(client_service),
+            services: Services {
+                client: Arc::new(client_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -174,7 +186,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::Conflict)));
 
         let app = client_routes().with_state(AppState {
-            client_service: Arc::new(client_service),
+            services: Services {
+                client: Arc::new(client_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -197,7 +212,10 @@ mod tests {
         client_service.expect_delete().once().returning(|_| Ok(()));
 
         let app = client_routes().with_state(AppState {
-            client_service: Arc::new(client_service),
+            services: Services {
+                client: Arc::new(client_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()

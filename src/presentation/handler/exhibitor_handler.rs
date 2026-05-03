@@ -21,7 +21,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<ExhibitorResponse>, HandlerError> {
-    let exhibitor = state.exhibitor_service.find_by_participant_id(id).await?;
+    let exhibitor = state.services.exhibitor.find_by_participant_id(id).await?;
     Ok(Json(ExhibitorResponse::from(exhibitor)))
 }
 
@@ -31,7 +31,7 @@ async fn create(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<CreateExhibitorRequest>,
 ) -> Result<Json<ExhibitorResponse>, HandlerError> {
-    let exhibitor = state.exhibitor_service.create(id, dto).await?;
+    let exhibitor = state.services.exhibitor.create(id, dto).await?;
     Ok(Json(ExhibitorResponse::from(exhibitor)))
 }
 
@@ -41,7 +41,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateExhibitorRequest>,
 ) -> Result<Json<ExhibitorResponse>, HandlerError> {
-    let exhibitor = state.exhibitor_service.update(id, dto).await?;
+    let exhibitor = state.services.exhibitor.update(id, dto).await?;
     Ok(Json(ExhibitorResponse::from(exhibitor)))
 }
 
@@ -50,7 +50,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.exhibitor_service.delete(id).await?;
+    state.services.exhibitor.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -65,13 +65,10 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::exhibitor_service::MockExhibitorService,
-        },
+        application::{error::AppError, service::exhibitor_service::MockExhibitorService},
         domain::{error::DomainError, models::exhibitor::Exhibitor},
         presentation::handler::{exhibitor_handler::exhibitor_routes, utils::test_jwt},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_exhibitor() -> Exhibitor {
@@ -99,7 +96,10 @@ mod tests {
             .returning(|_| Ok(fake_exhibitor()));
 
         let app = exhibitor_routes().with_state(AppState {
-            exhibitor_service: Arc::new(svc),
+            services: Services {
+                exhibitor: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -122,7 +122,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = exhibitor_routes().with_state(AppState {
-            exhibitor_service: Arc::new(svc),
+            services: Services {
+                exhibitor: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -143,7 +146,10 @@ mod tests {
         svc.expect_delete().once().returning(|_| Ok(()));
 
         let app = exhibitor_routes().with_state(AppState {
-            exhibitor_service: Arc::new(svc),
+            services: Services {
+                exhibitor: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app

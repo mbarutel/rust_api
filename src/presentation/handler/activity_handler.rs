@@ -15,14 +15,8 @@ use crate::state::AppState;
 pub fn activity_routes() -> Router<AppState> {
     Router::new()
         .route("/api/activities", get(list).post(create))
-        .route(
-            "/api/activities/{id}",
-            get(find).put(update).delete(delete),
-        )
-        .route(
-            "/api/conferences/{id}/activities",
-            get(list_by_conference),
-        )
+        .route("/api/activities/{id}", get(find).put(update).delete(delete))
+        .route("/api/conferences/{id}/activities", get(list_by_conference))
         .route(
             "/api/activities/{id}/bookings",
             get(list_bookings).post(book),
@@ -46,7 +40,8 @@ async fn list(
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<ActivityResponse>>, HandlerError> {
     let (activities, total) = state
-        .activity_service
+        .services
+        .activity
         .list(query.page, query.per_page)
         .await?;
     Ok(Json(PaginatedResponse {
@@ -62,7 +57,8 @@ async fn list_by_conference(
     Path(id): Path<u64>,
 ) -> Result<Json<Vec<ActivityResponse>>, HandlerError> {
     let activities = state
-        .activity_service
+        .services
+        .activity
         .find_by_conference(id)
         .await?
         .into_iter()
@@ -75,7 +71,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<ActivityResponse>, HandlerError> {
-    let activity = state.activity_service.find_by_id(id).await?;
+    let activity = state.services.activity.find_by_id(id).await?;
     Ok(Json(ActivityResponse::from(activity)))
 }
 
@@ -84,7 +80,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateActivityRequest>,
 ) -> Result<Json<ActivityResponse>, HandlerError> {
-    let activity = state.activity_service.create(dto).await?;
+    let activity = state.services.activity.create(dto).await?;
     Ok(Json(ActivityResponse::from(activity)))
 }
 
@@ -94,7 +90,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateActivityRequest>,
 ) -> Result<Json<ActivityResponse>, HandlerError> {
-    let activity = state.activity_service.update(id, dto).await?;
+    let activity = state.services.activity.update(id, dto).await?;
     Ok(Json(ActivityResponse::from(activity)))
 }
 
@@ -103,7 +99,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.activity_service.delete(id).await?;
+    state.services.activity.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -112,7 +108,8 @@ async fn list_bookings(
     Path(id): Path<u64>,
 ) -> Result<Json<Vec<ActivityBookingResponse>>, HandlerError> {
     let bookings = state
-        .activity_service
+        .services
+        .activity
         .list_bookings_by_activity(id)
         .await?
         .into_iter()
@@ -126,7 +123,8 @@ async fn list_bookings_by_participant(
     Path(id): Path<u64>,
 ) -> Result<Json<Vec<ActivityBookingResponse>>, HandlerError> {
     let bookings = state
-        .activity_service
+        .services
+        .activity
         .list_bookings_by_participant(id)
         .await?
         .into_iter()
@@ -141,7 +139,7 @@ async fn book(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<BookActivityRequest>,
 ) -> Result<StatusCode, HandlerError> {
-    state.activity_service.book(id, dto.participant_id).await?;
+    state.services.activity.book(id, dto.participant_id).await?;
     Ok(StatusCode::CREATED)
 }
 
@@ -151,7 +149,8 @@ async fn confirm_booking(
     Path((id, participant_id)): Path<(u64, u64)>,
 ) -> Result<StatusCode, HandlerError> {
     state
-        .activity_service
+        .services
+        .activity
         .confirm_booking(id, participant_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -163,7 +162,8 @@ async fn cancel_booking(
     Path((id, participant_id)): Path<(u64, u64)>,
 ) -> Result<StatusCode, HandlerError> {
     state
-        .activity_service
+        .services
+        .activity
         .cancel_booking(id, participant_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
@@ -180,10 +180,7 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::activity_service::MockActivityService,
-        },
+        application::{error::AppError, service::activity_service::MockActivityService},
         domain::{
             error::DomainError,
             models::{
@@ -192,7 +189,7 @@ mod tests {
             },
         },
         presentation::handler::{activity_handler::activity_routes, utils::test_jwt},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_activity() -> Activity {
@@ -232,7 +229,10 @@ mod tests {
         svc.expect_list().once().returning(|_, _| Ok((vec![], 0)));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -255,7 +255,10 @@ mod tests {
             .returning(|_| Ok(fake_activity()));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -278,7 +281,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -301,7 +307,10 @@ mod tests {
             .returning(|_| Ok(vec![]));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -322,7 +331,10 @@ mod tests {
         svc.expect_delete().once().returning(|_| Ok(()));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -347,7 +359,10 @@ mod tests {
             .returning(|_| Ok(vec![fake_booking()]));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -368,7 +383,10 @@ mod tests {
         svc.expect_book().once().returning(|_, _| Ok(()));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -392,7 +410,10 @@ mod tests {
         svc.expect_cancel_booking().once().returning(|_, _| Ok(()));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -412,12 +433,13 @@ mod tests {
     #[tokio::test]
     async fn confirm_booking_ok() {
         let mut svc = MockActivityService::new();
-        svc.expect_confirm_booking()
-            .once()
-            .returning(|_, _| Ok(()));
+        svc.expect_confirm_booking().once().returning(|_, _| Ok(()));
 
         let app = activity_routes().with_state(AppState {
-            activity_service: Arc::new(svc),
+            services: Services {
+                activity: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app

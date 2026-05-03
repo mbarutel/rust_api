@@ -29,7 +29,8 @@ async fn list(
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<ParticipantResponse>>, HandlerError> {
     let (participants, total) = state
-        .participant_service
+        .services
+        .participant
         .list(query.page, query.per_page)
         .await?;
     let participants = participants
@@ -50,7 +51,8 @@ async fn list_by_registration(
     Path(id): Path<u64>,
 ) -> Result<Json<Vec<ParticipantResponse>>, HandlerError> {
     let participants = state
-        .participant_service
+        .services
+        .participant
         .find_by_registration(id)
         .await?
         .into_iter()
@@ -64,7 +66,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<ParticipantResponse>, HandlerError> {
-    let participant = state.participant_service.find_by_id(id).await?;
+    let participant = state.services.participant.find_by_id(id).await?;
     Ok(Json(ParticipantResponse::from(participant)))
 }
 
@@ -73,7 +75,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateParticipantRequest>,
 ) -> Result<Json<ParticipantResponse>, HandlerError> {
-    let participant = state.participant_service.create(dto).await?;
+    let participant = state.services.participant.create(dto).await?;
     Ok(Json(ParticipantResponse::from(participant)))
 }
 
@@ -83,7 +85,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateParticipantRequest>,
 ) -> Result<Json<ParticipantResponse>, HandlerError> {
-    let participant = state.participant_service.update(id, dto).await?;
+    let participant = state.services.participant.update(id, dto).await?;
     Ok(Json(ParticipantResponse::from(participant)))
 }
 
@@ -92,7 +94,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.participant_service.delete(id).await?;
+    state.services.participant.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -107,16 +109,10 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::participant_service::MockParticipantService,
-        },
+        application::{error::AppError, service::participant_service::MockParticipantService},
         domain::{error::DomainError, models::participant::Participant},
-        presentation::handler::{
-            participant_handler::participant_routes,
-            utils::test_jwt,
-        },
-        state::AppState,
+        presentation::handler::{participant_handler::participant_routes, utils::test_jwt},
+        state::{AppState, Services},
     };
 
     fn fake_participant() -> Participant {
@@ -142,11 +138,19 @@ mod tests {
         svc.expect_list().once().returning(|_, _| Ok((vec![], 0)));
 
         let app = participant_routes().with_state(AppState {
-            participant_service: Arc::new(svc),
+            services: Services {
+                participant: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
-            .oneshot(Request::builder().uri("/api/participants").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/participants")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -155,14 +159,24 @@ mod tests {
     #[tokio::test]
     async fn find_ok() {
         let mut svc = MockParticipantService::new();
-        svc.expect_find_by_id().once().returning(|_| Ok(fake_participant()));
+        svc.expect_find_by_id()
+            .once()
+            .returning(|_| Ok(fake_participant()));
 
         let app = participant_routes().with_state(AppState {
-            participant_service: Arc::new(svc),
+            services: Services {
+                participant: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
-            .oneshot(Request::builder().uri("/api/participants/1").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/participants/1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -176,11 +190,19 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = participant_routes().with_state(AppState {
-            participant_service: Arc::new(svc),
+            services: Services {
+                participant: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
-            .oneshot(Request::builder().uri("/api/participants/99").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/api/participants/99")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::NOT_FOUND);
@@ -194,7 +216,10 @@ mod tests {
             .returning(|_| Ok(vec![]));
 
         let app = participant_routes().with_state(AppState {
-            participant_service: Arc::new(svc),
+            services: Services {
+                participant: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -215,7 +240,10 @@ mod tests {
         svc.expect_delete().once().returning(|_| Ok(()));
 
         let app = participant_routes().with_state(AppState {
-            participant_service: Arc::new(svc),
+            services: Services {
+                participant: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app

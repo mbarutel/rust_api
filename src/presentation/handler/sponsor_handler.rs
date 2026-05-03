@@ -21,7 +21,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<SponsorResponse>, HandlerError> {
-    let sponsor = state.sponsor_service.find_by_participant_id(id).await?;
+    let sponsor = state.services.sponsor.find_by_participant_id(id).await?;
     Ok(Json(SponsorResponse::from(sponsor)))
 }
 
@@ -31,7 +31,7 @@ async fn create(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<CreateSponsorRequest>,
 ) -> Result<Json<SponsorResponse>, HandlerError> {
-    let sponsor = state.sponsor_service.create(id, dto).await?;
+    let sponsor = state.services.sponsor.create(id, dto).await?;
     Ok(Json(SponsorResponse::from(sponsor)))
 }
 
@@ -41,7 +41,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateSponsorRequest>,
 ) -> Result<Json<SponsorResponse>, HandlerError> {
-    let sponsor = state.sponsor_service.update(id, dto).await?;
+    let sponsor = state.services.sponsor.update(id, dto).await?;
     Ok(Json(SponsorResponse::from(sponsor)))
 }
 
@@ -50,7 +50,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.sponsor_service.delete(id).await?;
+    state.services.sponsor.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -65,13 +65,10 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::sponsor_service::MockSponsorService,
-        },
+        application::{error::AppError, service::sponsor_service::MockSponsorService},
         domain::{error::DomainError, models::sponsor::Sponsor},
         presentation::handler::{sponsor_handler::sponsor_routes, utils::test_jwt},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_sponsor() -> Sponsor {
@@ -100,7 +97,10 @@ mod tests {
             .returning(|_| Ok(fake_sponsor()));
 
         let app = sponsor_routes().with_state(AppState {
-            sponsor_service: Arc::new(svc),
+            services: Services {
+                sponsor: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -123,7 +123,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = sponsor_routes().with_state(AppState {
-            sponsor_service: Arc::new(svc),
+            services: Services {
+                sponsor: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -144,7 +147,10 @@ mod tests {
         svc.expect_delete().once().returning(|_| Ok(()));
 
         let app = sponsor_routes().with_state(AppState {
-            sponsor_service: Arc::new(svc),
+            services: Services {
+                sponsor: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app

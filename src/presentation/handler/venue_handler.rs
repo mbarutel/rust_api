@@ -19,7 +19,11 @@ async fn list(
     State(state): State<AppState>,
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<VenueResponse>>, HandlerError> {
-    let (venues, total) = state.venue_service.list(query.page, query.per_page).await?;
+    let (venues, total) = state
+        .services
+        .venue
+        .list(query.page, query.per_page)
+        .await?;
     let venues = venues.into_iter().map(VenueResponse::from).collect();
 
     Ok(Json(PaginatedResponse {
@@ -34,7 +38,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<VenueResponse>, HandlerError> {
-    let venue = state.venue_service.find_by_id(id).await?;
+    let venue = state.services.venue.find_by_id(id).await?;
     Ok(Json(VenueResponse::from(venue)))
 }
 
@@ -43,7 +47,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateVenueRequest>,
 ) -> Result<Json<VenueResponse>, HandlerError> {
-    let venue = state.venue_service.create(dto).await?;
+    let venue = state.services.venue.create(dto).await?;
     Ok(Json(VenueResponse::from(venue)))
 }
 
@@ -53,7 +57,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateVenueRequest>,
 ) -> Result<Json<VenueResponse>, HandlerError> {
-    let venue = state.venue_service.update(id, dto).await?;
+    let venue = state.services.venue.update(id, dto).await?;
     Ok(Json(VenueResponse::from(venue)))
 }
 
@@ -62,7 +66,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.venue_service.delete(id).await?;
+    state.services.venue.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -80,7 +84,7 @@ mod tests {
         application::{error::AppError, service::venue_service::MockVenueService},
         domain::{error::DomainError, models::venue::Venue},
         presentation::handler::{utils::test_jwt, venue_handler::venue_routes},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_venue() -> Venue {
@@ -112,7 +116,10 @@ mod tests {
             .returning(|_, _| Ok((vec![], 0)));
 
         let app = venue_routes().with_state(AppState {
-            venue_service: Arc::new(venue_service),
+            services: Services {
+                venue: Arc::new(venue_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -134,7 +141,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = venue_routes().with_state(AppState {
-            venue_service: Arc::new(venue_service),
+            services: Services {
+                venue: Arc::new(venue_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -156,7 +166,10 @@ mod tests {
             .returning(|_| Ok(fake_venue()));
 
         let app = venue_routes().with_state(AppState {
-            venue_service: Arc::new(venue_service),
+            services: Services {
+                venue: Arc::new(venue_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -175,7 +188,10 @@ mod tests {
         venue_service.expect_delete().once().returning(|_| Ok(()));
 
         let app = venue_routes().with_state(AppState {
-            venue_service: Arc::new(venue_service),
+            services: Services {
+                venue: Arc::new(venue_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()

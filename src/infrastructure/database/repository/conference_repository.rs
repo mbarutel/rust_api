@@ -25,6 +25,7 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
                 start_date,
                 end_date,
                 venue_id,
+                group_discount_id,
                 published,
                 created_at,
                 updated_at
@@ -55,6 +56,7 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
                 start_date,
                 end_date,
                 venue_id,
+                group_discount_id,
                 published,
                 created_at,
                 updated_at
@@ -81,11 +83,14 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
                     start_date,
                     end_date,
                     venue_id,
+                    group_discount_id,
                     published,
                     created_at,
                     updated_at
                 )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )",
             conference.code,
             conference.name,
             conference.poster_url,
@@ -93,6 +98,7 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
             conference.start_date,
             conference.end_date,
             conference.venue_id,
+            conference.group_discount_id,
             conference.published,
             conference.created_at,
             conference.updated_at,
@@ -115,6 +121,7 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
                 start_date = ?,
                 end_date = ?,
                 venue_id = ?,
+                group_discount_id = ?,
                 published = ?,
                 updated_at = ?
             WHERE
@@ -125,6 +132,7 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
             conference.start_date,
             conference.end_date,
             conference.venue_id,
+            conference.group_discount_id,
             conference.published,
             conference.updated_at,
             conference.id,

@@ -1,8 +1,6 @@
 # Notes to self
 
 ## Business logic
-So, the registration handler and service for a delegate registration is set, albiet, it still needs more work.
-Here are some things that still need thinking about:
 
 - [ ] PriceTiers will have their own table and point to a conference. Will generate and save at conference creation and on manual trigger.
   - [ ] price_tier_repository implement

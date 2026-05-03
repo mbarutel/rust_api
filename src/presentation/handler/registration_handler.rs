@@ -34,7 +34,8 @@ async fn list(
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<RegistrationResponse>>, HandlerError> {
     let (registrations, total) = state
-        .registration_service
+        .services
+        .registration
         .list(query.page, query.per_page)
         .await?;
     let registrations = registrations
@@ -54,7 +55,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<RegistrationResponse>, HandlerError> {
-    let registration = state.registration_service.find_by_id(id).await?;
+    let registration = state.services.registration.find_by_id(id).await?;
     Ok(Json(RegistrationResponse::from(registration)))
 }
 
@@ -63,7 +64,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateRegistrationRequest>,
 ) -> Result<Json<RegistrationResponse>, HandlerError> {
-    let registration = state.registration_service.create(dto).await?;
+    let registration = state.services.registration.create(dto).await?;
     Ok(Json(RegistrationResponse::from(registration)))
 }
 
@@ -73,7 +74,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateRegistrationRequest>,
 ) -> Result<Json<RegistrationResponse>, HandlerError> {
-    let registration = state.registration_service.update(id, dto).await?;
+    let registration = state.services.registration.update(id, dto).await?;
     Ok(Json(RegistrationResponse::from(registration)))
 }
 
@@ -82,7 +83,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.registration_service.delete(id).await?;
+    state.services.registration.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -93,7 +94,8 @@ async fn transition_status(
     ValidateJson(dto): ValidateJson<TransitionStatusRequest>,
 ) -> Result<Json<RegistrationResponse>, HandlerError> {
     let registration = state
-        .registration_service
+        .services
+        .registration
         .transition_status(id, dto)
         .await?;
     Ok(Json(RegistrationResponse::from(registration)))
@@ -105,7 +107,7 @@ async fn record_payment(
     Path(id): Path<u64>,
     Json(dto): Json<RecordPaymentRequest>,
 ) -> Result<Json<RegistrationResponse>, HandlerError> {
-    let registration = state.registration_service.record_payment(id, dto).await?;
+    let registration = state.services.registration.record_payment(id, dto).await?;
     Ok(Json(RegistrationResponse::from(registration)))
 }
 
@@ -123,7 +125,7 @@ mod tests {
         application::{error::AppError, service::registration_service::MockRegistrationService},
         domain::{error::DomainError, models::registration::Registration},
         presentation::handler::{registration_handler::registration_routes, utils::test_jwt},
-        state::AppState,
+        state::{AppState, Services},
     };
 
     fn fake_registration() -> Registration {
@@ -153,7 +155,10 @@ mod tests {
         svc.expect_list().once().returning(|_, _| Ok((vec![], 0)));
 
         let app = registration_routes().with_state(AppState {
-            registration_service: Arc::new(svc),
+            services: Services {
+                registration: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -176,7 +181,10 @@ mod tests {
             .returning(|_| Ok(fake_registration()));
 
         let app = registration_routes().with_state(AppState {
-            registration_service: Arc::new(svc),
+            services: Services {
+                registration: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -199,7 +207,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = registration_routes().with_state(AppState {
-            registration_service: Arc::new(svc),
+            services: Services {
+                registration: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -220,7 +231,10 @@ mod tests {
         svc.expect_delete().once().returning(|_| Ok(()));
 
         let app = registration_routes().with_state(AppState {
-            registration_service: Arc::new(svc),
+            services: Services {
+                registration: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app
@@ -247,7 +261,10 @@ mod tests {
         });
 
         let app = registration_routes().with_state(AppState {
-            registration_service: Arc::new(svc),
+            services: Services {
+                registration: Arc::new(svc),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let res = app

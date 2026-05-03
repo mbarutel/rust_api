@@ -25,7 +25,8 @@ async fn list(
     Query(query): Query<ListQueryRequest>,
 ) -> Result<Json<PaginatedResponse<OrganizationResponse>>, HandlerError> {
     let (organizations, total) = state
-        .organization_service
+        .services
+        .organization
         .list(query.page, query.per_page)
         .await?;
     let organizations = organizations
@@ -45,7 +46,7 @@ async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> Result<Json<OrganizationResponse>, HandlerError> {
-    let organization = state.organization_service.find_by_id(id).await?;
+    let organization = state.services.organization.find_by_id(id).await?;
     Ok(Json(OrganizationResponse::from(organization)))
 }
 
@@ -54,7 +55,7 @@ async fn create(
     _auth: AuthUser,
     ValidateJson(dto): ValidateJson<CreateOrganizationRequest>,
 ) -> Result<Json<OrganizationResponse>, HandlerError> {
-    let organization = state.organization_service.create(dto).await?;
+    let organization = state.services.organization.create(dto).await?;
     Ok(Json(OrganizationResponse::from(organization)))
 }
 
@@ -64,7 +65,7 @@ async fn update(
     Path(id): Path<u64>,
     ValidateJson(dto): ValidateJson<UpdateOrganizationRequest>,
 ) -> Result<Json<OrganizationResponse>, HandlerError> {
-    let organization = state.organization_service.update(id, dto).await?;
+    let organization = state.services.organization.update(id, dto).await?;
     Ok(Json(OrganizationResponse::from(organization)))
 }
 
@@ -73,7 +74,7 @@ async fn delete(
     _auth: AuthUser,
     Path(id): Path<u64>,
 ) -> Result<StatusCode, HandlerError> {
-    state.organization_service.delete(id).await?;
+    state.services.organization.delete(id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -88,16 +89,10 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::organization_service::MockOrganizationService,
-        },
+        application::{error::AppError, service::organization_service::MockOrganizationService},
         domain::{error::DomainError, models::organization::Organization},
-        presentation::handler::{
-            organization_handler::organization_routes,
-            utils::test_jwt,
-        },
-        state::AppState,
+        presentation::handler::{organization_handler::organization_routes, utils::test_jwt},
+        state::{AppState, Services},
     };
 
     fn fake_organization() -> Organization {
@@ -125,7 +120,10 @@ mod tests {
             .returning(|_, _| Ok((vec![], 0)));
 
         let app = organization_routes().with_state(AppState {
-            organization_service: Arc::new(org_service),
+            services: Services {
+                organization: Arc::new(org_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -146,7 +144,10 @@ mod tests {
             .returning(|_| Ok(fake_organization()));
 
         let app = organization_routes().with_state(AppState {
-            organization_service: Arc::new(org_service),
+            services: Services {
+                organization: Arc::new(org_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -167,7 +168,10 @@ mod tests {
             .returning(|_| Err(AppError::Domain(DomainError::NotFound)));
 
         let app = organization_routes().with_state(AppState {
-            organization_service: Arc::new(org_service),
+            services: Services {
+                organization: Arc::new(org_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -185,7 +189,10 @@ mod tests {
         org_service.expect_delete().once().returning(|_| Ok(()));
 
         let app = organization_routes().with_state(AppState {
-            organization_service: Arc::new(org_service),
+            services: Services {
+                organization: Arc::new(org_service),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()

@@ -24,6 +24,7 @@ pub struct UpdateConferenceRequest {
     pub start_date: Option<NaiveDateTime>,
     pub end_date: Option<NaiveDateTime>,
     pub venue_id: Option<u64>,
+    pub group_discount_id: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]

@@ -19,7 +19,7 @@ pub async fn login(
 ) -> Result<Json<TokenResponse>, HandlerError> {
     tracing::info!("User {} logging in", payload.email);
 
-    let token = state.auth_service.login(payload).await?;
+    let token = state.services.auth.login(payload).await?;
 
     Ok(Json(token))
 }
@@ -32,7 +32,7 @@ pub async fn register(
     tracing::info!("User {} registering", payload.email);
 
     println!("Registering");
-    let token = state.auth_service.register(payload).await?;
+    let token = state.services.auth.register(payload).await?;
 
     Ok(Json(token))
 }
@@ -49,12 +49,10 @@ mod tests {
 
     use crate::{
         application::{
-            dto::auth_dto::TokenResponse,
-            error::AppError,
-            service::auth_service::MockAuthService,
+            dto::auth_dto::TokenResponse, error::AppError, service::auth_service::MockAuthService,
         },
         presentation::handler::auth_handler::auth_routes,
-        state::AppState,
+        state::{AppState, Services},
     };
 
     #[tokio::test]
@@ -67,7 +65,10 @@ mod tests {
         });
 
         let app = auth_routes().with_state(AppState {
-            auth_service: Arc::new(auth),
+            services: Services {
+                auth: Arc::new(auth),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()
@@ -89,7 +90,10 @@ mod tests {
             .returning(|_| Err(AppError::Unauthorized));
 
         let app = auth_routes().with_state(AppState {
-            auth_service: Arc::new(auth),
+            services: Services {
+                auth: Arc::new(auth),
+                ..Services::default()
+            },
             ..AppState::default()
         });
         let req = Request::builder()

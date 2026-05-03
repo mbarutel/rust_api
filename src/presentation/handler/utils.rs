@@ -8,7 +8,9 @@ use crate::{
         dto::auth_dto::Claims,
         service::{
             activity_service::MockActivityService, auth_service::MockAuthService,
-            client_service::MockClientService, conference_service::MockConferenceService,
+            client_service::MockClientService,
+            conference_registration_service::MockConferenceRegistrationService,
+            conference_service::MockConferenceService,
             exhibitor_service::MockExhibitorService,
             masterclass_service::MockMasterclassService,
             organization_service::MockOrganizationService,
@@ -19,8 +21,29 @@ use crate::{
         },
     },
     infrastructure::config::Config,
-    state::AppState,
+    state::{AppState, Services},
 };
+
+impl Default for Services {
+    fn default() -> Self {
+        Self {
+            activity: Arc::new(MockActivityService::new()),
+            auth: Arc::new(MockAuthService::new()),
+            client: Arc::new(MockClientService::new()),
+            conference: Arc::new(MockConferenceService::new()),
+            conference_registration: Arc::new(MockConferenceRegistrationService::new()),
+            exhibitor: Arc::new(MockExhibitorService::new()),
+            masterclass: Arc::new(MockMasterclassService::new()),
+            organization: Arc::new(MockOrganizationService::new()),
+            participant: Arc::new(MockParticipantService::new()),
+            registration: Arc::new(MockRegistrationService::new()),
+            speaker: Arc::new(MockSpeakerService::new()),
+            sponsor: Arc::new(MockSponsorService::new()),
+            user: Arc::new(MockUserService::new()),
+            venue: Arc::new(MockVenueService::new()),
+        }
+    }
+}
 
 impl Default for AppState {
     fn default() -> Self {
@@ -35,19 +58,7 @@ impl Default for AppState {
             db: MySqlPoolOptions::new()
                 .connect_lazy("mysql://fake")
                 .unwrap(),
-            activity_service: Arc::new(MockActivityService::new()),
-            auth_service: Arc::new(MockAuthService::new()),
-            client_service: Arc::new(MockClientService::new()),
-            conference_service: Arc::new(MockConferenceService::new()),
-            exhibitor_service: Arc::new(MockExhibitorService::new()),
-            masterclass_service: Arc::new(MockMasterclassService::new()),
-            organization_service: Arc::new(MockOrganizationService::new()),
-            participant_service: Arc::new(MockParticipantService::new()),
-            registration_service: Arc::new(MockRegistrationService::new()),
-            speaker_service: Arc::new(MockSpeakerService::new()),
-            sponsor_service: Arc::new(MockSponsorService::new()),
-            user_service: Arc::new(MockUserService::new()),
-            venue_service: Arc::new(MockVenueService::new()),
+            services: Services::default(),
         }
     }
 }
