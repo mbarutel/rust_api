@@ -1,6 +1,7 @@
-use crate::{application::error::AppError, domain::error::DomainError};
 use axum::{Json, http::StatusCode, response::IntoResponse};
 use serde_json::json;
+
+use crate::{application::error::AppError, domain::error::DomainError};
 
 #[derive(Debug)]
 pub struct HandlerError(pub AppError);
@@ -16,7 +17,9 @@ impl IntoResponse for HandlerError {
         let (status, message) = match &self.0 {
             AppError::Domain(DomainError::NotFound) => (StatusCode::NOT_FOUND, "not found"),
             AppError::Domain(DomainError::Conflict) => (StatusCode::CONFLICT, "already exists"),
-            AppError::Domain(DomainError::InvalidTransition(msg)) => (StatusCode::UNPROCESSABLE_ENTITY, msg.as_str()),
+            AppError::Domain(DomainError::InvalidTransition(msg)) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, msg.as_str())
+            }
             AppError::Validation(msg) => (StatusCode::UNPROCESSABLE_ENTITY, msg.as_str()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized"),
             AppError::Forbidden => (StatusCode::FORBIDDEN, "forbidden"),

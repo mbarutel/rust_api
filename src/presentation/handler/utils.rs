@@ -5,19 +5,15 @@ use sqlx::mysql::MySqlPoolOptions;
 
 use crate::{
     application::{
-        dto::auth_dto::Claims,
+        dto::auth::Claims,
         service::{
-            activity_service::MockActivityService, auth_service::MockAuthService,
-            client_service::MockClientService,
-            conference_registration_service::MockConferenceRegistrationService,
-            conference_service::MockConferenceService,
-            exhibitor_service::MockExhibitorService,
-            masterclass_service::MockMasterclassService,
-            organization_service::MockOrganizationService,
-            participant_service::MockParticipantService,
-            registration_service::MockRegistrationService,
-            speaker_service::MockSpeakerService, sponsor_service::MockSponsorService,
-            user_service::MockUserService, venue_service::MockVenueService,
+            activity::MockActivityService, auth::MockAuthService, client::MockClientService,
+            conference::MockConferenceService,
+            conference_registration::MockConferenceRegistrationService,
+            exhibitor::MockExhibitorService, masterclass::MockMasterclassService,
+            organization::MockOrganizationService, participant::MockParticipantService,
+            registration::MockRegistrationService, speaker::MockSpeakerService,
+            sponsor::MockSponsorService, user::MockUserService, venue::MockVenueService,
         },
     },
     infrastructure::config::Config,

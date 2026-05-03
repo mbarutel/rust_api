@@ -4,33 +4,31 @@ pub mod infrastructure;
 pub mod presentation;
 pub mod state;
 
-use crate::{
-    infrastructure::config::Config,
-    presentation::{
-        handler::{
-            activity_handler::activity_routes, auth_handler::auth_routes,
-            client_handler::client_routes, conference_handler::conference_routes,
-            exhibitor_handler::exhibitor_routes, health_handler::health_routes,
-            masterclass_handler::masterclass_routes, organization_handler::organization_routes,
-            participant_handler::participant_routes, registration_handler::registration_routes,
-            speaker_handler::speaker_routes, sponsor_handler::sponsor_routes,
-            user_handler::user_routes, venue_handler::venue_routes,
-        },
-        middleware::rate_limiting::rate_limit_config,
-    },
-    state::AppState,
-};
-use axum::{Router, http::StatusCode};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
+
+use axum::{Router, http::StatusCode};
 use tokio::signal;
 use tower_governor::GovernorLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tower_http::{
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     timeout::TimeoutLayer,
     trace::TraceLayer,
+};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+use crate::{
+    infrastructure::config::Config,
+    presentation::{
+        handler::{
+            activity_routes, auth_routes, client_routes, conference_routes, exhibitor_routes,
+            health_routes, masterclass_routes, organization_routes, participant_routes,
+            registration_routes, speaker_routes, sponsor_routes, user_routes, venue_routes,
+        },
+        middleware::rate_limiting::rate_limit_config,
+    },
+    state::AppState,
 };
 
 pub async fn run() -> anyhow::Result<()> {
@@ -46,9 +44,12 @@ pub async fn run() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     println!("Server is running on port {}", config.port);
 
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     tracing::info!("Server shutdown complete");
     Ok(())

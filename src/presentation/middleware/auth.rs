@@ -5,8 +5,11 @@ use axum_extra::{
 };
 use jsonwebtoken::{DecodingKey, Validation, decode};
 
-use crate::{application::dto::auth_dto::Claims, state::AppState};
-use crate::{application::error::AppError, presentation::error::HandlerError};
+use crate::{
+    application::{dto::auth::Claims, error::AppError},
+    presentation::error::HandlerError,
+    state::AppState,
+};
 
 // Authenticated user extractor
 pub struct AuthUser {

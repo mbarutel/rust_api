@@ -1,6 +1,4 @@
-use axum::Router;
-use axum::body::Body;
-use axum::http::Request;
+use axum::{Router, body::Body, http::Request};
 use http_body_util::BodyExt;
 use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::de::DeserializeOwned;
