@@ -17,7 +17,7 @@ use crate::{
         error::DomainError,
         models::{conference::Conference, price_tier::generate_price_tiers},
     },
-    infrastructure::database::repository::price_tier_repository::PriceTierRepository,
+    application::repository::price_tier_repository::PriceTierRepository,
 };
 
 pub struct ConferenceServiceImpl {

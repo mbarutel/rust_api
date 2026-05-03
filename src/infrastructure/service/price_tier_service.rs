@@ -9,7 +9,7 @@ use crate::{
         error::AppError, service::price_tier_service::PriceTierService,
     },
     domain::models::price_tier::PriceTier,
-    infrastructure::database::repository::price_tier_repository::PriceTierRepository,
+    application::repository::price_tier_repository::PriceTierRepository,
 };
 
 pub struct PriceTierServiceImpl {

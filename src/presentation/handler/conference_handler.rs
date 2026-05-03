@@ -134,7 +134,8 @@ async fn registration_form(
         )));
     }
 
-    let price_tiers = state.services.price // continue from here
+    // let price_tiers = state.services.price; // continue from here
+    let price_tiers = vec![];
 
     let active_promos = vec![PublicPromoInfo::default(), PublicPromoInfo::default()];
     let form_data = RegistrationFormData {

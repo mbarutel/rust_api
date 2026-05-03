@@ -27,7 +27,7 @@ pub struct PriceTier {
 pub fn generate_price_tiers(start_date: NaiveDate) -> Vec<PriceTier> {
     const STEPS: usize = 8;
     const DISCOUNT_PER_STEP: u8 = 200;
-    const WALK_IN_PRICE: u8 = 2500;
+    const WALK_IN_PRICE: usize = 2500;
     const IS_PERCENT_DISCOUNT: bool = false;
 
     let walk_year = start_date.year();

@@ -1,20 +1,13 @@
 use crate::{
-    application::{entity::price_tier_entity::PriceTierEntity, repository::Repository},
+    application::{
+        entity::price_tier_entity::PriceTierEntity,
+        repository::{Repository, price_tier_repository::PriceTierRepository},
+    },
     db_repository,
     domain::error::DomainError,
     impl_count, impl_delete,
     infrastructure::database::repository::macros::{map_db_err, map_find_err},
 };
-
-#[async_trait::async_trait]
-pub trait PriceTierRepository: Repository<PriceTierEntity> {
-    async fn create_many_in_tx(
-        &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
-        entities: Vec<PriceTierEntity>,
-    ) -> Result<Vec<PriceTierEntity>, DomainError>;
-    async fn delete_by_conference_id(&self, conference_id: u64) -> Result<(), DomainError>;
-}
 
 db_repository!(DbPriceTierRepository);
 
