@@ -13,6 +13,7 @@ pub trait PriceTierRepository: Repository<PriceTierEntity> {
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
         entities: Vec<PriceTierEntity>,
     ) -> Result<Vec<PriceTierEntity>, DomainError>;
+    async fn delete_by_conference_id(&self, conference_id: u64) -> Result<(), DomainError>;
 }
 
 db_repository!(DbPriceTierRepository);
@@ -140,5 +141,17 @@ impl PriceTierRepository for DbPriceTierRepository {
         }
 
         Ok(inserted)
+    }
+
+    async fn delete_by_conference_id(&self, conference_id: u64) -> Result<(), DomainError> {
+        sqlx::query!(
+            "DELETE FROM price_tiers WHERE conference_id = ?",
+            conference_id
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(map_db_err)?;
+
+        Ok(())
     }
 }

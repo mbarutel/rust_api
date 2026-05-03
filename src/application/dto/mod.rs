@@ -9,6 +9,7 @@ pub mod masterclass_dto;
 pub mod organization_dto;
 pub mod pagination;
 pub mod participant_dto;
+pub mod price_tier_dto;
 pub mod registration_dto;
 pub mod speaker_dto;
 pub mod sponsor_dto;

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Datelike, Days, NaiveDate, NaiveTime, Utc};
+use chrono::{DateTime, Datelike, Days, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -13,14 +13,17 @@ use serde::{Deserialize, Serialize};
 //     pub is_active: bool,
 // }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct PriceTier {
     pub id: u64,
     pub conference_id: u64,
     pub price: Decimal,
-    pub deadline: DateTime<Utc>,
+    pub deadline: NaiveDate,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
+// Some further work needed for this function. I don't think that it should live here, nor do I think that it should return PriceTier
 pub fn generate_price_tiers(
     start_date: NaiveDate,
     walk_in_price: Decimal,
@@ -56,13 +59,14 @@ pub fn generate_price_tiers(
         dates
     };
 
+    let now = Utc::now();
     let mut tiers: Vec<PriceTier> = cutoff_dates
         .iter()
         .enumerate()
         .map(|(idx, &date)| PriceTier {
             id: 0,
             conference_id: 0,
-            deadline: date.and_time(NaiveTime::MIN).and_utc(),
+            deadline: date,
             price: calc_price(
                 walk_in_price,
                 steps,
@@ -70,6 +74,8 @@ pub fn generate_price_tiers(
                 discount_per_step,
                 is_perscent_discount,
             ),
+            created_at: now,
+            updated_at: now,
         })
         .collect();
 
@@ -77,7 +83,9 @@ pub fn generate_price_tiers(
         id: 0,
         conference_id: 0,
         price: walk_in_price,
-        deadline: start_date.and_time(NaiveTime::MIN).and_utc(),
+        deadline: start_date,
+        created_at: now,
+        updated_at: now,
     });
 
     tiers
@@ -87,7 +95,7 @@ fn last_day_of_month(year: i32, month: u32) -> NaiveDate {
     let (next_year, next_month) = if month == 12 {
         (year + 1, 1)
     } else {
-        (year + 1, month + 1)
+        (year, month + 1)
     };
     NaiveDate::from_ymd_opt(next_year, next_month, 1)
         .unwrap()

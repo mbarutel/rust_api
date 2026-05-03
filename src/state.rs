@@ -43,6 +43,7 @@ use crate::{
                 },
                 organization_repository::DbOrganizationRepository,
                 participant_repository::DbParticipantRepository,
+                price_tier_repository::{DbPriceTierRepository, PriceTierRepository},
                 registration_repository::DbRegistrationRepository,
                 speaker_repository::DbSpeakerRepository,
                 sponsor_repository::DbSponsorRepository,
@@ -104,6 +105,7 @@ struct Repositories {
     venue: Arc<dyn VenueRepository>,
     conference: Arc<dyn ConferenceRepository>,
     organization: Arc<dyn OrganizationRepository>,
+    price_tier: Arc<dyn PriceTierRepository>,
 }
 
 impl Repositories {
@@ -124,6 +126,7 @@ impl Repositories {
             venue: Arc::new(DbVenueRepository::new(db.clone())),
             conference: Arc::new(DbConferenceRepository::new(db.clone())),
             organization: Arc::new(DbOrganizationRepository::new(db.clone())),
+            price_tier: Arc::new(DbPriceTierRepository::new(db.clone())),
         }
     }
 }
@@ -167,8 +170,10 @@ impl Services {
         let sponsor = Arc::new(SponsorServiceImpl::new(repos.sponsor));
         let venue = Arc::new(VenueServiceImpl::new(repos.venue.clone()));
         let conference = Arc::new(ConferenceServiceImpl::new(
-            repos.conference,
+            db.clone(),
+            repos.conference.clone(),
             repos.venue.clone(),
+            repos.price_tier.clone(),
         ));
         let organization = Arc::new(OrganizationServiceImpl::new(repos.organization.clone()));
         let conference_registration = Arc::new(ConferenceRegistrationServiceImpl::new(

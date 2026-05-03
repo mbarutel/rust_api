@@ -1,32 +1,44 @@
 use chrono::Utc;
+use rust_decimal::Decimal;
+use sqlx::MySqlPool;
 use std::sync::Arc;
 
 use crate::{
     application::{
         dto::conference_dto::{CreateConferenceRequest, UpdateConferenceRequest},
-        entity::conference_entity::ConferenceEntity,
+        entity::{conference_entity::ConferenceEntity, price_tier_entity::PriceTierEntity},
         error::AppError,
         repository::{
             conference_repository::ConferenceRepository, venue_repository::VenueRepository,
         },
         service::conference_service::ConferenceService,
     },
-    domain::{error::DomainError, models::conference::Conference},
+    domain::{
+        error::DomainError,
+        models::{conference::Conference, price_tier::generate_price_tiers},
+    },
+    infrastructure::database::repository::price_tier_repository::PriceTierRepository,
 };
 
 pub struct ConferenceServiceImpl {
+    pool: MySqlPool,
     conference_repo: Arc<dyn ConferenceRepository>,
     venue_repo: Arc<dyn VenueRepository>,
+    price_tier_repo: Arc<dyn PriceTierRepository>,
 }
 
 impl ConferenceServiceImpl {
     pub fn new(
+        pool: MySqlPool,
         conference_repo: Arc<dyn ConferenceRepository>,
         venue_repo: Arc<dyn VenueRepository>,
+        price_tier_repo: Arc<dyn PriceTierRepository>,
     ) -> Self {
         Self {
+            pool,
             conference_repo,
             venue_repo,
+            price_tier_repo,
         }
     }
 }
@@ -88,6 +100,48 @@ impl ConferenceService for ConferenceServiceImpl {
         };
 
         let conference_entity = self.conference_repo.create(conference_entity).await?;
+
+        // Continue from here: This is errring
+        // A conference could be created but the price tiers fail
+        if conference_entity.start_date.is_some() {
+            let mut tx = self
+                .pool
+                .begin()
+                .await
+                .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
+
+            let price_tiers = generate_price_tiers(
+                dto.start_date.unwrap().into(),
+                Decimal::from(2500),
+                8,
+                Decimal::from(200),
+                false,
+            );
+            let price_tiers = price_tiers
+                .into_iter()
+                .map(|e| PriceTierEntity {
+                    id: 0,
+                    conference_id: conference_entity.id,
+                    price: e.price,
+                    deadline: e.deadline,
+                    created_at: e.created_at,
+                    updated_at: e.updated_at,
+                })
+                .collect::<Vec<PriceTierEntity>>();
+
+            println!("[did this work?]");
+
+            self.price_tier_repo
+                .create_many_in_tx(&mut tx, price_tiers)
+                .await
+                .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
+
+            tx.commit()
+                .await
+                .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
+        } else {
+            println!("[apperantly there is no start_date?]")
+        }
 
         Ok(Conference::from((conference_entity, None)))
     }

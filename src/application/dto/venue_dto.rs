@@ -46,7 +46,7 @@ pub struct VenueResponse {
 
 impl From<Venue> for VenueResponse {
     fn from(v: Venue) -> Self {
-        VenueResponse {
+        Self {
             id: v.id,
             name: v.name,
             address_line1: v.address_line1,

@@ -8,7 +8,7 @@ use crate::presentation::middleware::validated_json::ValidateJson;
 
 use crate::presentation::error::HandlerError;
 use crate::presentation::middleware::auth::AuthUser;
-use crate::state::{AppState, Services};
+use crate::state::AppState;
 
 pub fn user_routes() -> Router<AppState> {
     Router::new()
@@ -80,15 +80,9 @@ mod tests {
     use std::sync::Arc;
 
     use crate::{
-        application::{
-            error::AppError,
-            service::user_service::MockUserService,
-        },
+        application::{error::AppError, service::user_service::MockUserService},
         domain::models::user::User,
-        presentation::handler::{
-            user_handler::user_routes,
-            utils::test_jwt,
-        },
+        presentation::handler::{user_handler::user_routes, utils::test_jwt},
         state::{AppState, Services},
     };
 
