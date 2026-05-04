@@ -1,8 +1,8 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 
 use crate::{
-    application::entity::venue::VenueEntity,
     domain::models::{conference::Conference, venue::Venue},
+    infrastructure::database::entity::venue::VenueEntity,
 };
 
 #[derive(Debug, sqlx::FromRow)]

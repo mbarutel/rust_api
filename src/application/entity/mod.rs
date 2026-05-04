@@ -1,31 +1,8 @@
-pub mod activity;
-pub mod activity_booking;
-pub mod client;
-pub mod conference;
-pub mod exhibitor;
-pub mod masterclass;
-pub mod masterclass_booking;
-pub mod organization;
-pub mod participant;
-pub mod price_tier;
-pub mod registration;
-pub mod speaker;
-pub mod sponsor;
-pub mod user;
-pub mod venue;
-
-pub use activity::ActivityEntity;
-pub use activity_booking::ActivityBookingEntity;
-pub use client::ClientEntity;
-pub use conference::ConferenceEntity;
-pub use exhibitor::ExhibitorEntity;
-pub use masterclass::{MasterclassEntity, MasterclassInstructorEntity};
-pub use masterclass_booking::MasterclassBookingEntity;
-pub use organization::OrganizationEntity;
-pub use participant::ParticipantEntity;
-pub use price_tier::PriceTierEntity;
-pub use registration::RegistrationEntity;
-pub use speaker::SpeakerEntity;
-pub use sponsor::SponsorEntity;
-pub use user::UserEntity;
-pub use venue::VenueEntity;
+pub use crate::infrastructure::database::entity::{
+    ActivityBookingEntity, ActivityEntity, ClientEntity, ConferenceEntity, ExhibitorEntity,
+    MasterclassBookingEntity, MasterclassEntity, MasterclassInstructorEntity, OrganizationEntity,
+    ParticipantEntity, PriceTierEntity, RegistrationEntity, SpeakerEntity, SponsorEntity,
+    UserEntity, VenueEntity, activity, activity_booking, client, conference, exhibitor,
+    masterclass, masterclass_booking, organization, participant, price_tier, registration, speaker,
+    sponsor, user, venue,
+};
