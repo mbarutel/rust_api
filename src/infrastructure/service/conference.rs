@@ -13,11 +13,9 @@ use crate::{
             venue::VenueRepository,
         },
         service::conference::ConferenceService,
+        utils::generate_price_tiers,
     },
-    domain::{
-        error::DomainError,
-        models::{conference::Conference, price_tier::generate_price_tiers},
-    },
+    domain::{error::DomainError, models::conference::Conference},
 };
 
 pub struct ConferenceServiceImpl {
@@ -113,19 +111,21 @@ impl ConferenceService for ConferenceServiceImpl {
             .create_in_tx(&mut tx, conference_entity)
             .await?;
 
-        // Continue from here: This is errring
-        // A conference could be created but the price tiers fail
         if conference_entity.start_date.is_some() {
             let price_tiers = generate_price_tiers(dto.start_date.unwrap().into());
             let price_tiers = price_tiers
                 .into_iter()
-                .map(|e| PriceTierEntity {
-                    id: 0,
-                    conference_id: conference_entity.id,
-                    price: e.price,
-                    deadline: e.deadline,
-                    created_at: e.created_at,
-                    updated_at: e.updated_at,
+                .map(|e| {
+                    let now = Utc::now();
+
+                    PriceTierEntity {
+                        id: 0,
+                        conference_id: conference_entity.id,
+                        price: e.price,
+                        deadline: e.deadline,
+                        created_at: now,
+                        updated_at: now,
+                    }
                 })
                 .collect::<Vec<PriceTierEntity>>();
 

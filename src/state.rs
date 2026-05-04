@@ -178,6 +178,9 @@ impl Services {
             repos.client.clone(),
             repos.registration.clone(),
             repos.participant.clone(),
+            repos.conference.clone(),
+            repos.venue.clone(),
+            repos.price_tier.clone(),
         ));
 
         Self {

@@ -136,6 +136,28 @@ impl PriceTierRepository for DbPriceTierRepository {
         Ok(inserted)
     }
 
+    async fn find_by_conference_id(
+        &self,
+        conference_id: u64,
+    ) -> Result<Vec<PriceTierEntity>, DomainError> {
+        sqlx::query_as!(
+            PriceTierEntity,
+            "SELECT
+                id,
+                conference_id,
+                price,
+                deadline,
+                created_at,
+                updated_at
+            FROM price_tiers
+            WHERE conference_id = ?",
+            conference_id,
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_db_err)
+    }
+
     async fn delete_by_conference_id(&self, conference_id: u64) -> Result<(), DomainError> {
         sqlx::query!(
             "DELETE FROM price_tiers WHERE conference_id = ?",

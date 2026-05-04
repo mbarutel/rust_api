@@ -4,6 +4,7 @@ pub mod auth;
 pub mod client;
 pub mod conference;
 pub mod exhibitor;
+pub mod group_discount;
 pub mod masterclass;
 pub mod masterclass_booking;
 pub mod organization;
@@ -22,6 +23,9 @@ pub use auth::{Claims, LoginRequest, RegisterRequest, TokenResponse};
 pub use client::{ClientResponse, CreateClientRequest, UpdateClientRequest};
 pub use conference::{ConferenceResponse, CreateConferenceRequest, UpdateConferenceRequest};
 pub use exhibitor::{CreateExhibitorRequest, ExhibitorResponse, UpdateExhibitorRequest};
+pub use group_discount::{
+    CreateGroupDiscountRequest, GroupDiscountResponse, UpdateGroupDiscountRequest,
+};
 pub use masterclass::{
     AddInstructorRequest, CreateMasterclassRequest, MasterclassInstructorResponse,
     MasterclassResponse, UpdateMasterclassRequest,
@@ -35,8 +39,8 @@ pub use participant::{CreateParticipantRequest, ParticipantResponse, UpdateParti
 pub use price_tier::{CreatePriceTierRequest, PriceTierResponse};
 pub use registration::{
     CreateRegistrationRequest, ParticipantInfo, PublicPromoInfo, RecordPaymentRequest,
-    RegisterDelegateRequest, RegistrationFormData, RegistrationResponse, TransitionStatusRequest,
-    UpdateRegistrationRequest,
+    RegisterDelegateRequest, RegistrationFormResponse, RegistrationResponse,
+    TransitionStatusRequest, UpdateRegistrationRequest,
 };
 pub use speaker::{CreateSpeakerRequest, SpeakerResponse, UpdateSpeakerRequest};
 pub use sponsor::{CreateSponsorRequest, SponsorResponse, UpdateSponsorRequest};

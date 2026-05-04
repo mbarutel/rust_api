@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use crate::{
-    application::dto::conference::ConferenceResponse,
+    application::dto::{ConferenceResponse, GroupDiscountResponse, PriceTierResponse},
     domain::models::{
-        price_tier::PriceTier,
+        PriceTier,
         registration::{PaymentStatus, Registration},
     },
 };
@@ -110,10 +110,10 @@ pub struct RegisterDelegateRequest {
 }
 
 #[derive(Debug, Serialize)]
-pub struct RegistrationFormData {
+pub struct RegistrationFormResponse {
     pub conference: ConferenceResponse,
-    pub price_tiers: Vec<PriceTier>,
-    pub active_promos: Vec<PublicPromoInfo>,
+    pub price_tiers: Vec<PriceTierResponse>,
+    pub group_discount: Option<GroupDiscountResponse>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

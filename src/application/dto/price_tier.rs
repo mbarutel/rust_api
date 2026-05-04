@@ -12,7 +12,6 @@ pub struct CreatePriceTierRequest {
 
 #[derive(Debug, Serialize)]
 pub struct PriceTierResponse {
-    pub id: u64,
     pub price: Decimal,
     pub deadline: NaiveDate,
 }
@@ -20,7 +19,6 @@ pub struct PriceTierResponse {
 impl From<PriceTier> for PriceTierResponse {
     fn from(pt: PriceTier) -> Self {
         Self {
-            id: pt.id,
             price: pt.price,
             deadline: pt.deadline,
         }

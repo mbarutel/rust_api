@@ -6,21 +6,24 @@ use sqlx::MySqlPool;
 
 use crate::{
     application::{
-        dto::registration::{RegisterDelegateRequest, RegistrationResponse},
-        entity::{
-            client::ClientEntity, organization::OrganizationEntity, participant::ParticipantEntity,
-            registration::RegistrationEntity,
+        dto::{
+            ConferenceResponse, GroupDiscountResponse, PriceTierResponse, RegisterDelegateRequest,
+            RegistrationFormResponse, RegistrationResponse,
         },
+        entity::{ClientEntity, OrganizationEntity, ParticipantEntity, RegistrationEntity},
         error::AppError,
         repository::{
-            client::ClientRepository, organization::OrganizationRepository,
-            participant::ParticipantRepository, registration::RegistrationRepository,
+            ClientRepository, ConferenceRepository, OrganizationRepository, ParticipantRepository,
+            PriceTierRepository, RegistrationRepository, VenueRepository,
         },
-        service::conference_registration::ConferenceRegistrationService,
+        service::ConferenceRegistrationService,
     },
     domain::{
         error::DomainError,
-        models::registration::{Registration, RegistrationStatus},
+        models::{
+            Conference, PriceTier,
+            registration::{Registration, RegistrationStatus},
+        },
     },
 };
 
@@ -30,6 +33,9 @@ pub struct ConferenceRegistrationServiceImpl {
     client_repo: Arc<dyn ClientRepository>,
     registration_repo: Arc<dyn RegistrationRepository>,
     participant_repo: Arc<dyn ParticipantRepository>,
+    conference_repo: Arc<dyn ConferenceRepository>,
+    venue_repo: Arc<dyn VenueRepository>,
+    price_tier_repo: Arc<dyn PriceTierRepository>,
 }
 
 impl ConferenceRegistrationServiceImpl {
@@ -39,6 +45,9 @@ impl ConferenceRegistrationServiceImpl {
         client_repo: Arc<dyn ClientRepository>,
         registration_repo: Arc<dyn RegistrationRepository>,
         participant_repo: Arc<dyn ParticipantRepository>,
+        conference_repo: Arc<dyn ConferenceRepository>,
+        venue_repo: Arc<dyn VenueRepository>,
+        price_tier_repo: Arc<dyn PriceTierRepository>,
     ) -> Self {
         Self {
             pool,
@@ -46,12 +55,57 @@ impl ConferenceRegistrationServiceImpl {
             client_repo,
             registration_repo,
             participant_repo,
+            conference_repo,
+            venue_repo,
+            price_tier_repo,
         }
     }
 }
 
 #[async_trait::async_trait]
 impl ConferenceRegistrationService for ConferenceRegistrationServiceImpl {
+    async fn register_delegates_form(
+        &self,
+        conference_id: u64,
+    ) -> Result<RegistrationFormResponse, AppError> {
+        let conference = self.conference_repo.find_by_id(conference_id).await?;
+
+        if conference.start_date.is_none() {
+            return Err(AppError::Domain(DomainError::InvalidTransition(
+                "Registration is not ready for conferences without a start date".to_string(),
+            )));
+        }
+
+        let venue = match conference.venue_id {
+            Some(id) => Some(self.venue_repo.find_by_id(id).await?),
+            None => None,
+        };
+
+        let price_tiers = self
+            .price_tier_repo
+            .find_by_conference_id(conference.id)
+            .await?
+            .into_iter()
+            .map(PriceTier::from)
+            .map(PriceTierResponse::from)
+            .collect();
+
+        // TODO: Dummy data for now
+        let group_discount = Some(GroupDiscountResponse {
+            name: "Testing".to_string(),
+            min_quantity: 3,
+            free_quantity: 1,
+            is_active: true,
+            valid_until: None,
+        });
+
+        Ok(RegistrationFormResponse {
+            conference: ConferenceResponse::from(Conference::from((conference, venue))),
+            price_tiers,
+            group_discount,
+        })
+    }
+
     async fn register_delegates(
         &self,
         dto: RegisterDelegateRequest,

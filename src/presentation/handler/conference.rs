@@ -9,9 +9,7 @@ use crate::{
     application::dto::{
         conference::{ConferenceResponse, CreateConferenceRequest, UpdateConferenceRequest},
         pagination::{ListQueryRequest, PaginatedResponse},
-        registration::{
-            PublicPromoInfo, RegisterDelegateRequest, RegistrationFormData, RegistrationResponse,
-        },
+        registration::{RegisterDelegateRequest, RegistrationFormResponse, RegistrationResponse},
     },
     presentation::{
         error::HandlerError,
@@ -36,8 +34,8 @@ pub fn conference_routes() -> Router<AppState> {
             axum::routing::post(unpublish),
         )
         .route(
-            "/api/conferences/{id}/registration-form",
-            axum::routing::get(registration_form),
+            "/api/conferences/{id}/delegate-form",
+            axum::routing::get(delegate_form),
         )
         .route(
             "/api/conferences/{id}/register/delegate",
@@ -120,31 +118,17 @@ async fn unpublish(
     Ok(Json(ConferenceResponse::from(conference)))
 }
 
-async fn registration_form(
+async fn delegate_form(
     State(state): State<AppState>,
     Path(id): Path<u64>,
-) -> Result<Json<RegistrationFormData>, HandlerError> {
-    let conference = state.services.conference.find_by_id(id).await?;
+) -> Result<Json<RegistrationFormResponse>, HandlerError> {
+    let registration_form = state
+        .services
+        .conference_registration
+        .register_delegates_form(id)
+        .await?;
 
-    if conference.start_date.is_none() {
-        return Err(HandlerError(crate::application::error::AppError::Domain(
-            crate::domain::error::DomainError::InvalidTransition(
-                "Registration is not ready for conferences without a start date".to_string(),
-            ),
-        )));
-    }
-
-    // let price_tiers = state.services.price; // continue from here
-    let price_tiers = vec![];
-
-    let active_promos = vec![PublicPromoInfo::default(), PublicPromoInfo::default()];
-    let form_data = RegistrationFormData {
-        conference: ConferenceResponse::from(conference),
-        price_tiers: price_tiers,
-        active_promos: active_promos,
-    };
-
-    Ok(Json(form_data))
+    Ok(Json(registration_form))
 }
 
 async fn register_delegate(

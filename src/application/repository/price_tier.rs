@@ -10,5 +10,9 @@ pub trait PriceTierRepository: Repository<PriceTierEntity> {
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
         entities: Vec<PriceTierEntity>,
     ) -> Result<Vec<PriceTierEntity>, DomainError>;
+    async fn find_by_conference_id(
+        &self,
+        conference_id: u64,
+    ) -> Result<Vec<PriceTierEntity>, DomainError>;
     async fn delete_by_conference_id(&self, conference_id: u64) -> Result<(), DomainError>;
 }
