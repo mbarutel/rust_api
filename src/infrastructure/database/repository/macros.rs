@@ -48,9 +48,9 @@ macro_rules! impl_find_by_id {
         ) -> ::core::pin::Pin<
             Box<
                 dyn ::core::future::Future<
-                    Output = Result<$entity, $crate::domain::error::DomainError>,
-                > + ::core::marker::Send
-                  + 'async_trait,
+                        Output = Result<$entity, $crate::domain::error::DomainError>,
+                    > + ::core::marker::Send
+                    + 'async_trait,
             >,
         >
         where
@@ -85,9 +85,9 @@ macro_rules! impl_find_all {
         ) -> ::core::pin::Pin<
             Box<
                 dyn ::core::future::Future<
-                    Output = Result<Vec<$entity>, $crate::domain::error::DomainError>,
-                > + ::core::marker::Send
-                  + 'async_trait,
+                        Output = Result<Vec<$entity>, $crate::domain::error::DomainError>,
+                    > + ::core::marker::Send
+                    + 'async_trait,
             >,
         >
         where
@@ -208,10 +208,9 @@ macro_rules! impl_delete {
             id: u64,
         ) -> ::core::pin::Pin<
             Box<
-                dyn ::core::future::Future<
-                    Output = Result<(), $crate::domain::error::DomainError>,
-                > + ::core::marker::Send
-                  + 'async_trait,
+                dyn ::core::future::Future<Output = Result<(), $crate::domain::error::DomainError>>
+                    + ::core::marker::Send
+                    + 'async_trait,
             >,
         >
         where
@@ -247,10 +246,9 @@ macro_rules! impl_count {
             &'life0 self,
         ) -> ::core::pin::Pin<
             Box<
-                dyn ::core::future::Future<
-                    Output = Result<u64, $crate::domain::error::DomainError>,
-                > + ::core::marker::Send
-                  + 'async_trait,
+                dyn ::core::future::Future<Output = Result<u64, $crate::domain::error::DomainError>>
+                    + ::core::marker::Send
+                    + 'async_trait,
             >,
         >
         where
@@ -258,11 +256,10 @@ macro_rules! impl_count {
             Self: 'async_trait,
         {
             Box::pin(async move {
-                let count: i64 =
-                    sqlx::query_scalar(concat!("SELECT COUNT(*) FROM ", $table))
-                        .fetch_one(&self.pool)
-                        .await
-                        .map_err(|e| $crate::domain::error::DomainError::Database(e.to_string()))?;
+                let count: i64 = sqlx::query_scalar(concat!("SELECT COUNT(*) FROM ", $table))
+                    .fetch_one(&self.pool)
+                    .await
+                    .map_err(|e| $crate::domain::error::DomainError::Database(e.to_string()))?;
                 Ok(count as u64)
             })
         }

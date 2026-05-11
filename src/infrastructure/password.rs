@@ -1,5 +1,6 @@
-use crate::application::error::AppError;
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
+
+use crate::application::error::AppError;
 
 pub fn hash_password(password: &str) -> Result<String, AppError> {
     use argon2::{

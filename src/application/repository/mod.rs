@@ -1,15 +1,34 @@
-pub mod conference_repository;
-pub mod user_repository;
-pub mod venue_repository;
+mod repository;
+pub use repository::Repository;
 
-use crate::domain::error::DomainError;
+pub mod activity;
+pub mod activity_booking;
+pub mod client;
+pub mod conference;
+pub mod exhibitor;
+pub mod masterclass;
+pub mod masterclass_booking;
+pub mod organization;
+pub mod participant;
+pub mod price_tier;
+pub mod registration;
+pub mod speaker;
+pub mod sponsor;
+pub mod user;
+pub mod venue;
 
-#[async_trait::async_trait]
-pub trait Repository<T>: Send + Sync {
-    async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<T>, DomainError>;
-    async fn find_by_id(&self, id: u64) -> Result<T, DomainError>;
-    async fn create(&self, entity: T) -> Result<T, DomainError>;
-    async fn update(&self, entity: T) -> Result<T, DomainError>;
-    async fn delete(&self, id: u64) -> Result<(), DomainError>;
-    async fn count(&self) -> Result<u64, DomainError>;
-}
+pub use activity::ActivityRepository;
+pub use activity_booking::ActivityBookingRepository;
+pub use client::ClientRepository;
+pub use conference::ConferenceRepository;
+pub use exhibitor::ExhibitorRepository;
+pub use masterclass::{MasterclassInstructorRepository, MasterclassRepository};
+pub use masterclass_booking::MasterclassBookingRepository;
+pub use organization::OrganizationRepository;
+pub use participant::ParticipantRepository;
+pub use price_tier::PriceTierRepository;
+pub use registration::RegistrationRepository;
+pub use speaker::SpeakerRepository;
+pub use sponsor::SponsorRepository;
+pub use user::UserRepository;
+pub use venue::VenueRepository;

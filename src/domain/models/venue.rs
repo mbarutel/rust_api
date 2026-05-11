@@ -11,7 +11,6 @@ pub struct Venue {
     pub postal_code: Option<String>,
     pub country: Option<String>,
     pub notes: Option<String>,
-    pub published: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

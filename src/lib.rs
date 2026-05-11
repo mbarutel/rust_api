@@ -4,28 +4,31 @@ pub mod infrastructure;
 pub mod presentation;
 pub mod state;
 
-use crate::{
-    infrastructure::config::Config,
-    presentation::{
-        handler::{
-            auth_handler::auth_routes, conference_handler::conference_routes,
-            health_handler::health_routes, user_handler::user_routes, venue_handler::venue_routes,
-        },
-        middleware::rate_limiting::rate_limit_config,
-    },
-    state::AppState,
-};
-use axum::{Router, http::StatusCode};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
+
+use axum::{Router, http::StatusCode};
 use tokio::signal;
 use tower_governor::GovernorLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tower_http::{
     compression::CompressionLayer,
     cors::{Any, CorsLayer},
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     timeout::TimeoutLayer,
     trace::TraceLayer,
+};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+use crate::{
+    infrastructure::config::Config,
+    presentation::{
+        handler::{
+            activity_routes, auth_routes, client_routes, conference_routes, exhibitor_routes,
+            health_routes, masterclass_routes, organization_routes, participant_routes,
+            registration_routes, speaker_routes, sponsor_routes, user_routes, venue_routes,
+        },
+        middleware::rate_limiting::rate_limit_config,
+    },
+    state::AppState,
 };
 
 pub async fn run() -> anyhow::Result<()> {
@@ -39,11 +42,13 @@ pub async fn run() -> anyhow::Result<()> {
     tracing::info!("Starting server on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    println!("Server is running on port {}", config.port);
 
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     tracing::info!("Server shutdown complete");
     Ok(())
@@ -53,9 +58,13 @@ fn init_tracing() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "api_server=debug,tower_http=debug".into()),
+                .unwrap_or_else(|_| "conference_services_api=debug,tower_http=debug".into()),
         )
-        .with(tracing_subscriber::fmt::layer().json())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .json()
+                .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE),
+        )
         .init();
 }
 
@@ -87,10 +96,19 @@ async fn shutdown_signal() {
 pub fn build_router(state: AppState, config: &Config) -> Router {
     let router = Router::new()
         .merge(health_routes())
+        .merge(activity_routes())
         .merge(auth_routes())
+        .merge(client_routes())
+        .merge(conference_routes())
+        .merge(exhibitor_routes())
+        .merge(masterclass_routes())
+        .merge(organization_routes())
+        .merge(participant_routes())
+        .merge(registration_routes())
+        .merge(speaker_routes())
+        .merge(sponsor_routes())
         .merge(user_routes())
-        .merge(venue_routes())
-        .merge(conference_routes());
+        .merge(venue_routes());
 
     let router = if config.rate_limiting {
         router.layer(GovernorLayer::new(rate_limit_config()))

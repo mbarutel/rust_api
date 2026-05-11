@@ -1,4 +1,4 @@
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    rust_api::run().await
+    conference_services_api::run().await
 }

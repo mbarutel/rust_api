@@ -1,6 +1,4 @@
-use axum::Router;
-use axum::body::Body;
-use axum::http::Request;
+use axum::{Router, body::Body, http::Request};
 use http_body_util::BodyExt;
 use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::de::DeserializeOwned;
@@ -8,8 +6,8 @@ use uuid::Uuid;
 
 pub async fn build_test_app() -> Router {
     dotenvy::dotenv().ok();
-    let mut config = rust_api::config::Config::from_env();
-    let state = rust_api::state::AppState::new(&config)
+    let mut config = conference_services_api::config::Config::from_env();
+    let state = conference_services_api::state::AppState::new(&config)
         .await
         .expect("Failed to create test app state");
     config.rate_limiting = false;
@@ -25,7 +23,7 @@ pub async fn build_test_app() -> Router {
         .await
         .expect("Failed to clean users table");
 
-    rust_api::build_router(state, &config)
+    conference_services_api::build_router(state, &config)
 }
 
 // Generate a valid JWT for testing.

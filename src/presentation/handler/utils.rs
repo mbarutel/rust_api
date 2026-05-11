@@ -5,43 +5,60 @@ use sqlx::mysql::MySqlPoolOptions;
 
 use crate::{
     application::{
-        dto::auth_dto::Claims,
+        dto::auth::Claims,
         service::{
-            auth_service::MockAuthService, conference_service::MockConferenceService,
-            user_service::MockUserService, venue_service::MockVenueService,
+            activity::MockActivityService, auth::MockAuthService, client::MockClientService,
+            conference::MockConferenceService,
+            conference_registration::MockConferenceRegistrationService,
+            exhibitor::MockExhibitorService, masterclass::MockMasterclassService,
+            organization::MockOrganizationService, participant::MockParticipantService,
+            registration::MockRegistrationService, speaker::MockSpeakerService,
+            sponsor::MockSponsorService, user::MockUserService, venue::MockVenueService,
         },
     },
     infrastructure::config::Config,
-    state::AppState,
+    state::{AppState, Services},
 };
 
-// Builds AppState with injected mocks
-pub fn test_state(
-    user_svc: MockUserService,
-    auth_svc: MockAuthService,
-    venue_svc: MockVenueService,
-    conference_svc: MockConferenceService,
-) -> AppState {
-    AppState {
-        config: Arc::new(Config {
-            port: 3000,
-            rate_limiting: false,
-            environment: "test".to_string(),
-            database_url: "mysql://fake".to_string(),
-            jwt_secret: "test_secret".to_string(),
-        }),
-        // connect_lazy: pool exists but never connects unless .acquire() is called
-        db: MySqlPoolOptions::new()
-            .connect_lazy("mysql://fake")
-            .unwrap(),
-        auth_service: Arc::new(auth_svc),
-        user_service: Arc::new(user_svc),
-        venue_service: Arc::new(venue_svc),
-        conference_service: Arc::new(conference_svc),
+impl Default for Services {
+    fn default() -> Self {
+        Self {
+            activity: Arc::new(MockActivityService::new()),
+            auth: Arc::new(MockAuthService::new()),
+            client: Arc::new(MockClientService::new()),
+            conference: Arc::new(MockConferenceService::new()),
+            conference_registration: Arc::new(MockConferenceRegistrationService::new()),
+            exhibitor: Arc::new(MockExhibitorService::new()),
+            masterclass: Arc::new(MockMasterclassService::new()),
+            organization: Arc::new(MockOrganizationService::new()),
+            participant: Arc::new(MockParticipantService::new()),
+            registration: Arc::new(MockRegistrationService::new()),
+            speaker: Arc::new(MockSpeakerService::new()),
+            sponsor: Arc::new(MockSponsorService::new()),
+            user: Arc::new(MockUserService::new()),
+            venue: Arc::new(MockVenueService::new()),
+        }
     }
 }
 
-// Generate a valid JWT signed with "test_secret"
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            config: Arc::new(Config {
+                port: 3000,
+                rate_limiting: false,
+                environment: "test".to_string(),
+                database_url: "mysql://fake".to_string(),
+                jwt_secret: "test_secret".to_string(),
+            }),
+            db: MySqlPoolOptions::new()
+                .connect_lazy("mysql://fake")
+                .unwrap(),
+            services: Services::default(),
+        }
+    }
+}
+
 pub fn test_jwt(user_id: u64) -> String {
     let claims = Claims {
         sub: user_id,

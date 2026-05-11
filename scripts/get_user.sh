@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 BASE_URL="${BASE_URL:-http://localhost:3000}"
 TOKEN="${TOKEN:-}"
 USER_ID="${1:?Usage: $0 <user_id>}"
