@@ -4,6 +4,7 @@ pub mod client;
 pub mod conference;
 pub mod conference_registration;
 pub mod exhibitor;
+pub mod group_discount;
 pub mod masterclass;
 pub mod organization;
 pub mod participant;
