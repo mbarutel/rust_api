@@ -3,6 +3,6 @@ CREATE TABLE IF NOT EXISTS group_discounts (
   name VARCHAR(255) NOT NULL,
   min_quantity INT UNSIGNED NOT NULL,
   free_quantity INT UNSIGNED NOT NULL,
-  is_active TINYINT(1) NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 0,
   valid_until DATETIME
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;

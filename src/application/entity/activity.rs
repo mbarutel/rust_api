@@ -19,7 +19,7 @@ pub struct ActivityEntity {
 
 impl From<ActivityEntity> for Activity {
     fn from(e: ActivityEntity) -> Self {
-        Activity {
+        Self {
             id: e.id,
             conference_id: e.conference_id,
             name: e.name,

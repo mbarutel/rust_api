@@ -6,7 +6,7 @@ use crate::{
     db_repository,
     domain::error::DomainError,
     impl_count, impl_delete,
-    infrastructure::database::repository::macros::{map_db_err, map_find_err},
+    infrastructure::repository::macros::{map_db_err, map_find_err},
 };
 
 db_repository!(DbConferenceRepository);

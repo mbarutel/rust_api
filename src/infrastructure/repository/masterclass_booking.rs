@@ -7,7 +7,7 @@ use crate::{
     },
     db_repository,
     domain::error::DomainError,
-    infrastructure::database::repository::macros::map_db_err,
+    infrastructure::repository::macros::map_db_err,
 };
 
 db_repository!(DbMasterclassBookingRepository);
