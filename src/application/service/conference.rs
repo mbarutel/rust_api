@@ -3,7 +3,7 @@ use crate::{
         dto::conference::{CreateConferenceRequest, UpdateConferenceRequest},
         error::AppError,
     },
-    domain::models::conference::Conference,
+    domain::models::{Conference, PriceTier},
 };
 
 #[cfg_attr(test, mockall::automock)]
@@ -15,4 +15,5 @@ pub trait ConferenceService: Send + Sync {
     async fn update(&self, id: u64, dto: UpdateConferenceRequest) -> Result<Conference, AppError>;
     async fn delete(&self, id: u64) -> Result<(), AppError>;
     async fn publish(&self, id: u64, published: bool) -> Result<Conference, AppError>;
+    async fn generate_price_tiers(&self, id: u64) -> Result<Vec<PriceTier>, AppError>;
 }

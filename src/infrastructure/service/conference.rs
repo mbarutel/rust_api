@@ -13,9 +13,12 @@ use crate::{
             venue::VenueRepository,
         },
         service::conference::ConferenceService,
+    },
+    domain::{
+        error::DomainError,
+        models::{PriceTier, conference::Conference},
         utils::generate_price_tiers,
     },
-    domain::{error::DomainError, models::conference::Conference},
 };
 
 pub struct ConferenceServiceImpl {
@@ -140,6 +143,52 @@ impl ConferenceService for ConferenceServiceImpl {
             .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
 
         Ok(Conference::from((conference_entity, None)))
+    }
+
+    async fn generate_price_tiers(&self, id: u64) -> Result<Vec<PriceTier>, AppError> {
+        // Update existing stored price tiers
+        let conference = self.conference_repo.find_by_id(id).await?;
+
+        let start_date = conference.start_date.ok_or_else(|| {
+            AppError::Domain(DomainError::InvalidTransition(
+                "Can't generate the price tiers without a start date".to_string(),
+            ))
+        })?;
+
+        let original_price_tiers = self
+            .price_tier_repo
+            .find_by_conference_id(conference.id)
+            .await?;
+
+        let generated_price_tiers = generate_price_tiers(start_date.date());
+
+        let price_tiers: Vec<PriceTierEntity> = original_price_tiers
+            .into_iter()
+            .zip(generated_price_tiers.into_iter())
+            .map(|(mut entity, generated)| {
+                entity.price = generated.price;
+                entity.deadline = generated.deadline;
+                entity.updated_at = Utc::now();
+                entity
+            })
+            .collect();
+
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
+
+        let price_tiers = self
+            .price_tier_repo
+            .update_many(&mut tx, price_tiers)
+            .await?;
+
+        tx.commit()
+            .await
+            .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
+
+        Ok(price_tiers.into_iter().map(PriceTier::from).collect())
     }
 
     async fn update(&self, id: u64, dto: UpdateConferenceRequest) -> Result<Conference, AppError> {

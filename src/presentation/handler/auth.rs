@@ -17,8 +17,6 @@ pub async fn login(
     State(state): State<AppState>,
     ValidateJson(payload): ValidateJson<LoginRequest>,
 ) -> Result<Json<TokenResponse>, HandlerError> {
-    tracing::info!("User {} logging in", payload.email);
-
     let token = state.services.auth.login(payload).await?;
 
     Ok(Json(token))
@@ -29,9 +27,6 @@ pub async fn register(
     State(state): State<AppState>,
     ValidateJson(payload): ValidateJson<RegisterRequest>,
 ) -> Result<Json<TokenResponse>, HandlerError> {
-    tracing::info!("User {} registering", payload.email);
-
-    println!("Registering");
     let token = state.services.auth.register(payload).await?;
 
     Ok(Json(token))

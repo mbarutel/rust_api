@@ -136,6 +136,35 @@ impl PriceTierRepository for DbPriceTierRepository {
         Ok(inserted)
     }
 
+    async fn update_many(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+        entities: Vec<PriceTierEntity>,
+    ) -> Result<Vec<PriceTierEntity>, DomainError> {
+        for entity in &entities {
+            sqlx::query!(
+                r#"
+                UPDATE
+                    price_tiers
+                SET
+                    price = ?,
+                    deadline = ?,
+                    updated_at = ?
+                WHERE
+                    id = ?"#,
+                entity.price,
+                entity.deadline,
+                entity.updated_at,
+                entity.id,
+            )
+            .execute(&mut **tx)
+            .await
+            .map_err(map_db_err)?;
+        }
+
+        Ok(entities)
+    }
+
     async fn find_by_conference_id(
         &self,
         conference_id: u64,

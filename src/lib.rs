@@ -42,7 +42,6 @@ pub async fn run() -> anyhow::Result<()> {
     tracing::info!("Starting server on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    println!("Server is running on port {}", config.port);
 
     axum::serve(
         listener,
@@ -59,9 +58,13 @@ fn init_tracing() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "api_server=debug,tower_http=debug".into()),
+                .unwrap_or_else(|_| "conference_services_api=debug,tower_http=debug".into()),
         )
-        .with(tracing_subscriber::fmt::layer().json())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .json()
+                .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE),
+        )
         .init();
 }
 

@@ -194,4 +194,14 @@ impl ConferenceRepository for DbConferenceRepository {
             ..entity
         })
     }
+
+    async fn exists(&self, id: u64) -> Result<bool, DomainError> {
+        let result =
+            sqlx::query_scalar!("SELECT EXISTS(SELECT 1 FROM conferences WHERE id = ?)", id)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(map_db_err)?;
+
+        Ok(result == 1)
+    }
 }

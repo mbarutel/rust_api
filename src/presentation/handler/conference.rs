@@ -7,6 +7,7 @@ use axum::{
 
 use crate::{
     application::dto::{
+        PriceTierResponse,
         conference::{ConferenceResponse, CreateConferenceRequest, UpdateConferenceRequest},
         pagination::{ListQueryRequest, PaginatedResponse},
         registration::{RegisterDelegateRequest, RegistrationFormResponse, RegistrationResponse},
@@ -34,6 +35,10 @@ pub fn conference_routes() -> Router<AppState> {
             axum::routing::post(unpublish),
         )
         .route(
+            "/api/conferences/{id}/generate-price-tiers",
+            axum::routing::get(generate_price_tiers),
+        )
+        .route(
             "/api/conferences/{id}/delegate-form",
             axum::routing::get(delegate_form),
         )
@@ -43,6 +48,7 @@ pub fn conference_routes() -> Router<AppState> {
         )
 }
 
+#[tracing::instrument(skip_all, err)]
 async fn list(
     State(state): State<AppState>,
     Query(query): Query<ListQueryRequest>,
@@ -64,6 +70,7 @@ async fn list(
     }))
 }
 
+#[tracing::instrument(skip_all, fields(conference_id = id), err)]
 async fn find(
     State(state): State<AppState>,
     Path(id): Path<u64>,
@@ -116,6 +123,23 @@ async fn unpublish(
 ) -> Result<Json<ConferenceResponse>, HandlerError> {
     let conference = state.services.conference.publish(id, false).await?;
     Ok(Json(ConferenceResponse::from(conference)))
+}
+
+async fn generate_price_tiers(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+    Path(id): Path<u64>,
+) -> Result<Json<Vec<PriceTierResponse>>, HandlerError> {
+    let price_tiers = state
+        .services
+        .conference
+        .generate_price_tiers(id)
+        .await?
+        .into_iter()
+        .map(PriceTierResponse::from)
+        .collect();
+
+    Ok(Json(price_tiers))
 }
 
 async fn delegate_form(

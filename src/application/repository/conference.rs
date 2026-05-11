@@ -10,4 +10,5 @@ pub trait ConferenceRepository: Repository<ConferenceEntity> {
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
         entity: ConferenceEntity,
     ) -> Result<ConferenceEntity, DomainError>;
+    async fn exists(&self, id: u64) -> Result<bool, DomainError>;
 }
