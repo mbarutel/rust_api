@@ -64,7 +64,7 @@ impl ConferenceService for ConferenceServiceImpl {
             .into_iter()
             .map(|e| {
                 let venue = e.venue_id.and_then(|id| venues.remove(&id));
-                Conference::from((e, venue))
+                Conference::from(e).with_venue(venue)
             })
             .collect();
 
@@ -82,7 +82,9 @@ impl ConferenceService for ConferenceServiceImpl {
             None => None,
         };
 
-        Ok(Conference::from((conference, venue)))
+        let conference = Conference::from(conference).with_venue(venue);
+
+        Ok(conference)
     }
 
     async fn create(&self, dto: CreateConferenceRequest) -> Result<Conference, AppError> {
@@ -142,7 +144,11 @@ impl ConferenceService for ConferenceServiceImpl {
             .await
             .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
 
-        Ok(Conference::from((conference_entity, None)))
+        unimplemented!(
+            "If the created conference has a venue, at the moment, it is not returning the venue as well. When you encounter this error, fix it"
+        );
+
+        Ok(Conference::from(conference_entity))
     }
 
     async fn generate_price_tiers(&self, id: u64) -> Result<Vec<PriceTier>, AppError> {
@@ -222,7 +228,7 @@ impl ConferenceService for ConferenceServiceImpl {
             None => None,
         };
 
-        Ok(Conference::from((conference_entity, venue_entity)))
+        Ok(Conference::from(conference_entity).with_venue(venue_entity))
     }
 
     async fn delete(&self, id: u64) -> Result<(), AppError> {
@@ -247,6 +253,6 @@ impl ConferenceService for ConferenceServiceImpl {
             None => None,
         };
 
-        Ok(Conference::from((entity, venue)))
+        Ok(Conference::from(entity).with_venue(venue))
     }
 }

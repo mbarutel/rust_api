@@ -100,7 +100,7 @@ impl ConferenceRegistrationService for ConferenceRegistrationServiceImpl {
         });
 
         Ok(RegistrationFormResponse {
-            conference: ConferenceResponse::from(Conference::from((conference, venue))),
+            conference: ConferenceResponse::from(Conference::from(conference).with_venue(venue)),
             price_tiers,
             group_discount,
         })
