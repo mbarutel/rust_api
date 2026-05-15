@@ -13,19 +13,6 @@ db_repository!(DbVenueRepository);
 
 #[async_trait::async_trait]
 impl Repository<VenueEntity> for DbVenueRepository {
-    async fn find_by_id(&self, id: u64) -> Result<VenueEntity, DomainError> {
-        sqlx::query_as!(
-            VenueEntity,
-            "SELECT id, name, address_line1, address_line2, city, state_region,
-             postal_code, country, notes, created_at, updated_at
-             FROM venues WHERE id = ?",
-            id,
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(map_find_err)
-    }
-
     async fn find_all(&self, offset: u32, limit: u32) -> Result<Vec<VenueEntity>, DomainError> {
         sqlx::query_as!(
             VenueEntity,
@@ -38,6 +25,19 @@ impl Repository<VenueEntity> for DbVenueRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(map_db_err)
+    }
+
+    async fn find_by_id(&self, id: u64) -> Result<VenueEntity, DomainError> {
+        sqlx::query_as!(
+            VenueEntity,
+            "SELECT id, name, address_line1, address_line2, city, state_region,
+             postal_code, country, notes, created_at, updated_at
+             FROM venues WHERE id = ?",
+            id,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_find_err)
     }
 
     async fn create(&self, venue: VenueEntity) -> Result<VenueEntity, DomainError> {

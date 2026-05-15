@@ -43,6 +43,7 @@ impl VenueService for VenueServiceImpl {
     }
 
     async fn create(&self, dto: CreateVenueRequest) -> Result<Venue, AppError> {
+        let now = Utc::now();
         let venue_entity = VenueEntity {
             id: 0,
             name: dto.name,
@@ -53,9 +54,10 @@ impl VenueService for VenueServiceImpl {
             postal_code: dto.postal_code,
             country: dto.country,
             notes: dto.notes,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: now,
+            updated_at: now,
         };
+
         Ok(Venue::from(self.venue_repo.create(venue_entity).await?))
     }
 

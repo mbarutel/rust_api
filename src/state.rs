@@ -5,6 +5,7 @@ use sqlx::mysql::MySqlPool;
 use crate::{
     application::{
         repository::{
+            GroupDiscountRepository,
             activity::ActivityRepository,
             activity_booking::ActivityBookingRepository,
             client::ClientRepository,
@@ -34,6 +35,7 @@ use crate::{
         config::Config,
         pool::create_pool,
         repository::{
+            GroupDiscountRepositoryImpl,
             activity::DbActivityRepository,
             activity_booking::DbActivityBookingRepository,
             client::DbClientRepository,
@@ -100,6 +102,7 @@ struct Repositories {
     conference: Arc<dyn ConferenceRepository>,
     organization: Arc<dyn OrganizationRepository>,
     price_tier: Arc<dyn PriceTierRepository>,
+    group_discount: Arc<dyn GroupDiscountRepository>,
 }
 
 impl Repositories {
@@ -121,6 +124,7 @@ impl Repositories {
             conference: Arc::new(DbConferenceRepository::new(db.clone())),
             organization: Arc::new(DbOrganizationRepository::new(db.clone())),
             price_tier: Arc::new(DbPriceTierRepository::new(db.clone())),
+            group_discount: Arc::new(GroupDiscountRepositoryImpl::new(db.clone())),
         }
     }
 }

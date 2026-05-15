@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 
 use crate::domain::models::GroupDiscount;
 
@@ -9,7 +9,9 @@ pub struct GroupDiscountEntity {
     pub min_quantity: u32,
     pub free_quantity: u32,
     pub active: i8,
-    pub valid_until: Option<DateTime<Utc>>,
+    pub valid_until: Option<NaiveDateTime>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl GroupDiscountEntity {
@@ -27,7 +29,7 @@ impl From<GroupDiscountEntity> for GroupDiscount {
             name: e.name,
             min_quantity: e.min_quantity,
             free_quantity: e.free_quantity,
-            active: is_active,
+            is_active: is_active,
             valid_until: e.valid_until,
         }
     }

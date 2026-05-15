@@ -1,3 +1,0 @@
-# Run with: cargo +nightly fmt
-imports_granularity = "Crate"
-group_imports = "StdExternalCrate"

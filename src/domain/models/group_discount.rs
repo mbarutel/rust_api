@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::NaiveDateTime;
 
 #[derive(Debug, Clone)]
 pub struct GroupDiscount {
@@ -6,6 +6,6 @@ pub struct GroupDiscount {
     pub name: String, // "3 for 2 deal"
     pub min_quantity: u32,
     pub free_quantity: u32,
-    pub active: bool,
-    pub valid_until: Option<DateTime<Utc>>,
+    pub is_active: bool,
+    pub valid_until: Option<NaiveDateTime>,
 }

@@ -13,7 +13,7 @@ pub struct Conference {
     pub end_date: Option<NaiveDateTime>,
     pub venue: Option<Venue>,
     pub group_discount: Option<GroupDiscount>,
-    pub published: bool,
+    pub is_published: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

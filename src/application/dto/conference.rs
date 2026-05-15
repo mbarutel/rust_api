@@ -37,7 +37,7 @@ pub struct ConferenceResponse {
     pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub venue: Option<VenueResponse>,
-    pub published: bool,
+    pub is_published: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -57,7 +57,7 @@ impl From<Conference> for ConferenceResponse {
             start_date,
             end_date,
             venue: venue_response,
-            published: conference.published,
+            is_published: conference.is_published,
             created_at: conference.created_at.to_string(),
             updated_at: conference.updated_at.to_string(),
         }

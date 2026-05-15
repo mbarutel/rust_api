@@ -50,7 +50,7 @@ impl ConferenceEntity {
 
 impl From<ConferenceEntity> for Conference {
     fn from(conference_entity: ConferenceEntity) -> Self {
-        let published = conference_entity.is_published();
+        let is_published = conference_entity.is_published();
 
         Self {
             id: conference_entity.id,
@@ -62,7 +62,7 @@ impl From<ConferenceEntity> for Conference {
             end_date: conference_entity.end_date,
             venue: None,
             group_discount: None,
-            published,
+            is_published,
             created_at: conference_entity.created_at,
             updated_at: conference_entity.updated_at,
         }
