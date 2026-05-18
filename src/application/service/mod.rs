@@ -20,6 +20,7 @@ pub use client::ClientService;
 pub use conference::ConferenceService;
 pub use conference_registration::ConferenceRegistrationService;
 pub use exhibitor::ExhibitorService;
+pub use group_discount::GroupDiscountService;
 pub use masterclass::MasterclassService;
 pub use organization::OrganizationService;
 pub use participant::ParticipantService;

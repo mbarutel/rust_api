@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::domain::models::activity_booking::ActivityBooking;
+use crate::domain::models::ActivityBooking;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct BookActivityRequest {

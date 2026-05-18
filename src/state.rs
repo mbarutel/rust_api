@@ -25,10 +25,11 @@ use crate::{
         service::{
             activity::ActivityService, auth::AuthService, client::ClientService,
             conference::ConferenceService, conference_registration::ConferenceRegistrationService,
-            exhibitor::ExhibitorService, masterclass::MasterclassService,
-            organization::OrganizationService, participant::ParticipantService,
-            registration::RegistrationService, speaker::SpeakerService, sponsor::SponsorService,
-            user::UserService, venue::VenueService,
+            exhibitor::ExhibitorService, group_discount::GroupDiscountService,
+            masterclass::MasterclassService, organization::OrganizationService,
+            participant::ParticipantService, registration::RegistrationService,
+            speaker::SpeakerService, sponsor::SponsorService, user::UserService,
+            venue::VenueService,
         },
     },
     infrastructure::{
@@ -53,8 +54,8 @@ use crate::{
             venue::DbVenueRepository,
         },
         service::{
-            activity::ActivityServiceImpl, auth::AuthServiceImpl, client::ClientServiceImpl,
-            conference::ConferenceServiceImpl,
+            GroupDiscountServiceImpl, activity::ActivityServiceImpl, auth::AuthServiceImpl,
+            client::ClientServiceImpl, conference::ConferenceServiceImpl,
             conference_registration::ConferenceRegistrationServiceImpl,
             exhibitor::ExhibitorServiceImpl, masterclass::MasterclassServiceImpl,
             organization::OrganizationServiceImpl, participant::ParticipantServiceImpl,
@@ -145,6 +146,7 @@ pub struct Services {
     pub user: Arc<dyn UserService>,
     pub venue: Arc<dyn VenueService>,
     pub conference_registration: Arc<dyn ConferenceRegistrationService>,
+    pub group_discount: Arc<dyn GroupDiscountService>,
 }
 
 impl Services {
@@ -172,6 +174,7 @@ impl Services {
             repos.conference.clone(),
             repos.venue.clone(),
             repos.price_tier.clone(),
+            repos.group_discount.clone(),
         ));
         let organization = Arc::new(OrganizationServiceImpl::new(repos.organization.clone()));
         let conference_registration = Arc::new(ConferenceRegistrationServiceImpl::new(
@@ -184,6 +187,7 @@ impl Services {
             repos.venue.clone(),
             repos.price_tier.clone(),
         ));
+        let group_discount = Arc::new(GroupDiscountServiceImpl::new(repos.group_discount.clone()));
 
         Self {
             user,
@@ -200,6 +204,7 @@ impl Services {
             conference,
             organization,
             conference_registration,
+            group_discount,
         }
     }
 }

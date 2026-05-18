@@ -9,8 +9,8 @@ use crate::{
         entity::{conference::ConferenceEntity, price_tier::PriceTierEntity, venue::VenueEntity},
         error::AppError,
         repository::{
-            conference::ConferenceRepository, price_tier::PriceTierRepository,
-            venue::VenueRepository,
+            GroupDiscountRepository, conference::ConferenceRepository,
+            price_tier::PriceTierRepository, venue::VenueRepository,
         },
         service::conference::ConferenceService,
     },
@@ -26,6 +26,7 @@ pub struct ConferenceServiceImpl {
     conference_repo: Arc<dyn ConferenceRepository>,
     venue_repo: Arc<dyn VenueRepository>,
     price_tier_repo: Arc<dyn PriceTierRepository>,
+    group_discount_repo: Arc<dyn GroupDiscountRepository>,
 }
 
 impl ConferenceServiceImpl {
@@ -34,12 +35,14 @@ impl ConferenceServiceImpl {
         conference_repo: Arc<dyn ConferenceRepository>,
         venue_repo: Arc<dyn VenueRepository>,
         price_tier_repo: Arc<dyn PriceTierRepository>,
+        group_discount_repo: Arc<dyn GroupDiscountRepository>,
     ) -> Self {
         Self {
             pool,
             conference_repo,
             venue_repo,
             price_tier_repo,
+            group_discount_repo,
         }
     }
 }
@@ -140,15 +143,16 @@ impl ConferenceService for ConferenceServiceImpl {
                 .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
         }
 
+        let venue_entity = match dto.venue_id {
+            Some(id) => Some(self.venue_repo.find_by_id(id).await?),
+            None => None,
+        };
+
         tx.commit()
             .await
             .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
 
-        unimplemented!(
-            "If the created conference has a venue, at the moment, it is not returning the venue as well. When you encounter this error, fix it"
-        );
-
-        Ok(Conference::from(conference_entity))
+        Ok(Conference::from(conference_entity).with_venue(venue_entity))
     }
 
     async fn generate_price_tiers(&self, id: u64) -> Result<Vec<PriceTier>, AppError> {

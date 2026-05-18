@@ -6,6 +6,7 @@ use crate::domain::models::GroupDiscount;
 pub struct GroupDiscountEntity {
     pub id: u64,
     pub name: String,
+    pub code: String,
     pub min_quantity: u32,
     pub free_quantity: u32,
     pub active: i8,
@@ -27,10 +28,13 @@ impl From<GroupDiscountEntity> for GroupDiscount {
         Self {
             id: e.id,
             name: e.name,
+            code: e.code,
             min_quantity: e.min_quantity,
             free_quantity: e.free_quantity,
             is_active: is_active,
             valid_until: e.valid_until,
+            created_at: e.created_at,
+            updated_at: e.updated_at,
         }
     }
 }

@@ -90,19 +90,9 @@ impl ConferenceRegistrationService for ConferenceRegistrationServiceImpl {
             .map(PriceTierResponse::from)
             .collect();
 
-        // TODO: Dummy data for now
-        let group_discount = Some(GroupDiscountResponse {
-            name: "Testing".to_string(),
-            min_quantity: 3,
-            free_quantity: 1,
-            is_active: true,
-            valid_until: None,
-        });
-
         Ok(RegistrationFormResponse {
             conference: ConferenceResponse::from(Conference::from(conference).with_venue(venue)),
             price_tiers,
-            group_discount,
         })
     }
 

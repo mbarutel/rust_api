@@ -27,27 +27,6 @@ impl ConferenceEntity {
     }
 }
 
-// impl From<(ConferenceEntity, Option<VenueEntity>)> for Conference {
-//     fn from((conference_entity, venue_entity): (ConferenceEntity, Option<VenueEntity>)) -> Self {
-//         let published = conference_entity.is_published();
-//         let venue = venue_entity.map(Venue::from);
-
-//         Conference {
-//             id: conference_entity.id,
-//             code: conference_entity.code,
-//             name: conference_entity.name,
-//             poster_url: conference_entity.poster_url,
-//             description: conference_entity.description,
-//             start_date: conference_entity.start_date,
-//             end_date: conference_entity.end_date,
-//             venue,
-//             published,
-//             created_at: conference_entity.created_at,
-//             updated_at: conference_entity.updated_at,
-//         }
-//     }
-// }
-
 impl From<ConferenceEntity> for Conference {
     fn from(conference_entity: ConferenceEntity) -> Self {
         let is_published = conference_entity.is_published();

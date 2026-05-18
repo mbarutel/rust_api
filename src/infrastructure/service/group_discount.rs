@@ -47,6 +47,7 @@ impl GroupDiscountService for GroupDiscountServiceImpl {
         let entity = GroupDiscountEntity {
             id: 0,
             name: dto.name,
+            code: dto.code,
             min_quantity: dto.min_quantity,
             free_quantity: dto.free_quantity,
             active: 0,
