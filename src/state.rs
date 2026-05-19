@@ -5,6 +5,7 @@ use sqlx::mysql::MySqlPool;
 use crate::{
     application::{
         repository::{
+            GroupDiscountRepository,
             activity::ActivityRepository,
             activity_booking::ActivityBookingRepository,
             client::ClientRepository,
@@ -24,37 +25,37 @@ use crate::{
         service::{
             activity::ActivityService, auth::AuthService, client::ClientService,
             conference::ConferenceService, conference_registration::ConferenceRegistrationService,
-            exhibitor::ExhibitorService, masterclass::MasterclassService,
-            organization::OrganizationService, participant::ParticipantService,
-            registration::RegistrationService, speaker::SpeakerService, sponsor::SponsorService,
-            user::UserService, venue::VenueService,
+            exhibitor::ExhibitorService, group_discount::GroupDiscountService,
+            masterclass::MasterclassService, organization::OrganizationService,
+            participant::ParticipantService, registration::RegistrationService,
+            speaker::SpeakerService, sponsor::SponsorService, user::UserService,
+            venue::VenueService,
         },
     },
     infrastructure::{
         config::Config,
-        database::{
-            pool::create_pool,
-            repository::{
-                activity::DbActivityRepository,
-                activity_booking::DbActivityBookingRepository,
-                client::DbClientRepository,
-                conference::DbConferenceRepository,
-                exhibitor::DbExhibitorRepository,
-                masterclass::{DbMasterclassInstructorRepository, DbMasterclassRepository},
-                masterclass_booking::DbMasterclassBookingRepository,
-                organization::DbOrganizationRepository,
-                participant::DbParticipantRepository,
-                price_tier::DbPriceTierRepository,
-                registration::DbRegistrationRepository,
-                speaker::DbSpeakerRepository,
-                sponsor::DbSponsorRepository,
-                user::DbUserRepository,
-                venue::DbVenueRepository,
-            },
+        pool::create_pool,
+        repository::{
+            GroupDiscountRepositoryImpl,
+            activity::DbActivityRepository,
+            activity_booking::DbActivityBookingRepository,
+            client::DbClientRepository,
+            conference::DbConferenceRepository,
+            exhibitor::DbExhibitorRepository,
+            masterclass::{DbMasterclassInstructorRepository, DbMasterclassRepository},
+            masterclass_booking::DbMasterclassBookingRepository,
+            organization::DbOrganizationRepository,
+            participant::DbParticipantRepository,
+            price_tier::DbPriceTierRepository,
+            registration::DbRegistrationRepository,
+            speaker::DbSpeakerRepository,
+            sponsor::DbSponsorRepository,
+            user::DbUserRepository,
+            venue::DbVenueRepository,
         },
         service::{
-            activity::ActivityServiceImpl, auth::AuthServiceImpl, client::ClientServiceImpl,
-            conference::ConferenceServiceImpl,
+            GroupDiscountServiceImpl, activity::ActivityServiceImpl, auth::AuthServiceImpl,
+            client::ClientServiceImpl, conference::ConferenceServiceImpl,
             conference_registration::ConferenceRegistrationServiceImpl,
             exhibitor::ExhibitorServiceImpl, masterclass::MasterclassServiceImpl,
             organization::OrganizationServiceImpl, participant::ParticipantServiceImpl,
@@ -102,6 +103,7 @@ struct Repositories {
     conference: Arc<dyn ConferenceRepository>,
     organization: Arc<dyn OrganizationRepository>,
     price_tier: Arc<dyn PriceTierRepository>,
+    group_discount: Arc<dyn GroupDiscountRepository>,
 }
 
 impl Repositories {
@@ -123,6 +125,7 @@ impl Repositories {
             conference: Arc::new(DbConferenceRepository::new(db.clone())),
             organization: Arc::new(DbOrganizationRepository::new(db.clone())),
             price_tier: Arc::new(DbPriceTierRepository::new(db.clone())),
+            group_discount: Arc::new(GroupDiscountRepositoryImpl::new(db.clone())),
         }
     }
 }
@@ -143,6 +146,7 @@ pub struct Services {
     pub user: Arc<dyn UserService>,
     pub venue: Arc<dyn VenueService>,
     pub conference_registration: Arc<dyn ConferenceRegistrationService>,
+    pub group_discount: Arc<dyn GroupDiscountService>,
 }
 
 impl Services {
@@ -170,6 +174,7 @@ impl Services {
             repos.conference.clone(),
             repos.venue.clone(),
             repos.price_tier.clone(),
+            repos.group_discount.clone(),
         ));
         let organization = Arc::new(OrganizationServiceImpl::new(repos.organization.clone()));
         let conference_registration = Arc::new(ConferenceRegistrationServiceImpl::new(
@@ -182,6 +187,7 @@ impl Services {
             repos.venue.clone(),
             repos.price_tier.clone(),
         ));
+        let group_discount = Arc::new(GroupDiscountServiceImpl::new(repos.group_discount.clone()));
 
         Self {
             user,
@@ -198,6 +204,7 @@ impl Services {
             conference,
             organization,
             conference_registration,
+            group_discount,
         }
     }
 }

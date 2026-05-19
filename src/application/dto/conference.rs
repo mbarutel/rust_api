@@ -2,7 +2,10 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{application::dto::venue::VenueResponse, domain::models::conference::Conference};
+use crate::{
+    application::dto::{GroupDiscountResponse, venue::VenueResponse},
+    domain::models::{GroupDiscount, Venue, conference::Conference},
+};
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateConferenceRequest {
@@ -14,6 +17,7 @@ pub struct CreateConferenceRequest {
     pub start_date: Option<NaiveDateTime>,
     pub end_date: Option<NaiveDateTime>,
     pub venue_id: Option<u64>,
+    pub group_discount_id: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -37,7 +41,8 @@ pub struct ConferenceResponse {
     pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub venue: Option<VenueResponse>,
-    pub published: bool,
+    pub group_discount: Option<GroupDiscountResponse>,
+    pub is_published: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -45,7 +50,6 @@ pub struct ConferenceResponse {
 impl From<Conference> for ConferenceResponse {
     fn from(conference: Conference) -> Self {
         let start_date = conference.start_date.map(|v| v.to_string());
-        let venue_response = conference.venue.map(VenueResponse::from);
         let end_date = conference.end_date.map(|v| v.to_string());
 
         ConferenceResponse {
@@ -56,10 +60,23 @@ impl From<Conference> for ConferenceResponse {
             description: conference.description,
             start_date,
             end_date,
-            venue: venue_response,
-            published: conference.published,
+            venue: None,
+            group_discount: None,
+            is_published: conference.is_published,
             created_at: conference.created_at.to_string(),
             updated_at: conference.updated_at.to_string(),
         }
+    }
+}
+
+impl ConferenceResponse {
+    pub fn with_venue(mut self, venue: Option<Venue>) -> Self {
+        self.venue = venue.map(VenueResponse::from);
+        self
+    }
+
+    pub fn with_group_discount(mut self, group_discount: Option<GroupDiscount>) -> Self {
+        self.group_discount = group_discount.map(GroupDiscountResponse::from);
+        self
     }
 }

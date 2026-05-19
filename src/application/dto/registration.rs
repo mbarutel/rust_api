@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use crate::{
-    application::dto::{ConferenceResponse, GroupDiscountResponse, PriceTierResponse},
+    application::dto::{ConferenceResponse, PriceTierResponse},
     domain::models::{
         PriceTier,
         registration::{PaymentStatus, Registration},
@@ -75,29 +75,28 @@ pub struct ParticipantInfo {
     pub accomodation_nights: u8,
 }
 
-// #[derive(Debug, Serialize, Deserialize, Validate, Default)]
-// pub struct PriceTier {
-//     pub price: Decimal,
-//     pub deadline: DateTime<Utc>,
+// #[derive(Debug, Serialize, Default)]
+// pub enum DiscountType {
+//     #[default]
+//     Percent,
+//     Fixed,
 // }
 
-#[derive(Debug, Serialize, Default)]
-pub enum DiscountType {
-    #[default]
-    Percent,
-    Fixed,
-}
-
-#[derive(Debug, Serialize, Default)]
-pub struct PublicPromoInfo {
-    pub id: u64,
-    pub conference_id: u64,
-    pub code: String,
-    pub discount_type: DiscountType,
-    pub amount: Decimal,
-    pub max_uses: Option<u32>,
-    pub used_count: u32,
-    pub valid_until: Option<DateTime<Utc>>,
+// #[derive(Debug, Serialize, Default)]
+// pub struct PublicPromoInfo {
+//     pub id: u64,
+//     pub conference_id: u64,
+//     pub code: String,
+//     pub discount_type: DiscountType,
+//     pub amount: Decimal,
+//     pub max_uses: Option<u32>,
+//     pub used_count: u32,
+//     pub valid_until: Option<DateTime<Utc>>,
+// }
+#[derive(Debug, Serialize)]
+pub struct RegistrationFormResponse {
+    pub conference: ConferenceResponse,
+    pub price_tiers: Vec<PriceTierResponse>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -107,13 +106,6 @@ pub struct RegisterDelegateRequest {
     pub discount_code: Option<String>,
     pub delegates: Vec<ParticipantInfo>,
     pub referrer: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct RegistrationFormResponse {
-    pub conference: ConferenceResponse,
-    pub price_tiers: Vec<PriceTierResponse>,
-    pub group_discount: Option<GroupDiscountResponse>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

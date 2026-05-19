@@ -3,13 +3,21 @@ use crate::{
         entity::price_tier::PriceTierEntity,
         repository::{Repository, price_tier::PriceTierRepository},
     },
-    db_repository,
     domain::error::DomainError,
     impl_count, impl_delete,
-    infrastructure::database::repository::macros::{map_db_err, map_find_err},
 };
 
-db_repository!(DbPriceTierRepository);
+use super::macros::{map_db_err, map_find_err};
+
+pub struct DbPriceTierRepository {
+    pub pool: sqlx::MySqlPool,
+}
+
+impl DbPriceTierRepository {
+    pub fn new(pool: sqlx::MySqlPool) -> Self {
+        Self { pool }
+    }
+}
 
 #[async_trait::async_trait]
 impl Repository<PriceTierEntity> for DbPriceTierRepository {

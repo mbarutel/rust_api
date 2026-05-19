@@ -6,7 +6,7 @@ use crate::{
     db_repository,
     domain::error::DomainError,
     impl_count, impl_delete,
-    infrastructure::database::repository::macros::{map_db_err, map_find_err},
+    infrastructure::repository::macros::{map_db_err, map_find_err},
 };
 
 db_repository!(DbConferenceRepository);
@@ -72,8 +72,8 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
         .map_err(map_db_err)
     }
 
-    async fn create(&self, conference: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {
-        sqlx::query!(
+    async fn create(&self, entity: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {
+        let id = sqlx::query!(
             "INSERT INTO
                 conferences (
                     code,
@@ -91,23 +91,24 @@ impl Repository<ConferenceEntity> for DbConferenceRepository {
             VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )",
-            conference.code,
-            conference.name,
-            conference.poster_url,
-            conference.description,
-            conference.start_date,
-            conference.end_date,
-            conference.venue_id,
-            conference.group_discount_id,
-            conference.published,
-            conference.created_at,
-            conference.updated_at,
+            entity.code,
+            entity.name,
+            entity.poster_url,
+            entity.description,
+            entity.start_date,
+            entity.end_date,
+            entity.venue_id,
+            entity.group_discount_id,
+            entity.published,
+            entity.created_at,
+            entity.updated_at,
         )
         .execute(&self.pool)
         .await
-        .map_err(map_db_err)?;
+        .map_err(map_db_err)?
+        .last_insert_id();
 
-        Ok(conference)
+        Ok(ConferenceEntity { id, ..entity })
     }
 
     async fn update(&self, conference: ConferenceEntity) -> Result<ConferenceEntity, DomainError> {

@@ -9,8 +9,8 @@ use crate::{
         entity::{conference::ConferenceEntity, price_tier::PriceTierEntity, venue::VenueEntity},
         error::AppError,
         repository::{
-            conference::ConferenceRepository, price_tier::PriceTierRepository,
-            venue::VenueRepository,
+            GroupDiscountRepository, conference::ConferenceRepository,
+            price_tier::PriceTierRepository, venue::VenueRepository,
         },
         service::conference::ConferenceService,
     },
@@ -26,6 +26,7 @@ pub struct ConferenceServiceImpl {
     conference_repo: Arc<dyn ConferenceRepository>,
     venue_repo: Arc<dyn VenueRepository>,
     price_tier_repo: Arc<dyn PriceTierRepository>,
+    group_discount_repo: Arc<dyn GroupDiscountRepository>,
 }
 
 impl ConferenceServiceImpl {
@@ -34,12 +35,14 @@ impl ConferenceServiceImpl {
         conference_repo: Arc<dyn ConferenceRepository>,
         venue_repo: Arc<dyn VenueRepository>,
         price_tier_repo: Arc<dyn PriceTierRepository>,
+        group_discount_repo: Arc<dyn GroupDiscountRepository>,
     ) -> Self {
         Self {
             pool,
             conference_repo,
             venue_repo,
             price_tier_repo,
+            group_discount_repo,
         }
     }
 }
@@ -64,7 +67,7 @@ impl ConferenceService for ConferenceServiceImpl {
             .into_iter()
             .map(|e| {
                 let venue = e.venue_id.and_then(|id| venues.remove(&id));
-                Conference::from((e, venue))
+                Conference::from(e).with_venue(venue)
             })
             .collect();
 
@@ -82,7 +85,9 @@ impl ConferenceService for ConferenceServiceImpl {
             None => None,
         };
 
-        Ok(Conference::from((conference, venue)))
+        let conference = Conference::from(conference).with_venue(venue);
+
+        Ok(conference)
     }
 
     async fn create(&self, dto: CreateConferenceRequest) -> Result<Conference, AppError> {
@@ -138,11 +143,16 @@ impl ConferenceService for ConferenceServiceImpl {
                 .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
         }
 
+        let venue_entity = match dto.venue_id {
+            Some(id) => Some(self.venue_repo.find_by_id(id).await?),
+            None => None,
+        };
+
         tx.commit()
             .await
             .map_err(|e| AppError::Domain(DomainError::Database(e.to_string())))?;
 
-        Ok(Conference::from((conference_entity, None)))
+        Ok(Conference::from(conference_entity).with_venue(venue_entity))
     }
 
     async fn generate_price_tiers(&self, id: u64) -> Result<Vec<PriceTier>, AppError> {
@@ -222,7 +232,7 @@ impl ConferenceService for ConferenceServiceImpl {
             None => None,
         };
 
-        Ok(Conference::from((conference_entity, venue_entity)))
+        Ok(Conference::from(conference_entity).with_venue(venue_entity))
     }
 
     async fn delete(&self, id: u64) -> Result<(), AppError> {
@@ -247,6 +257,6 @@ impl ConferenceService for ConferenceServiceImpl {
             None => None,
         };
 
-        Ok(Conference::from((entity, venue)))
+        Ok(Conference::from(entity).with_venue(venue))
     }
 }
