@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
@@ -75,6 +74,10 @@ pub struct ParticipantInfo {
     pub accomodation_nights: u8,
 }
 
+pub struct Speaker {
+    biography: String,
+}
+
 // #[derive(Debug, Serialize, Default)]
 // pub enum DiscountType {
 //     #[default]
@@ -93,8 +96,10 @@ pub struct ParticipantInfo {
 //     pub used_count: u32,
 //     pub valid_until: Option<DateTime<Utc>>,
 // }
+
 #[derive(Debug, Serialize)]
 pub struct RegistrationFormResponse {
+    // This should be DelegateFormResponse
     pub conference: ConferenceResponse,
     pub price_tiers: Vec<PriceTierResponse>,
 }

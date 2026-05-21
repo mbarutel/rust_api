@@ -13,6 +13,7 @@ pub mod participant;
 pub mod price_tier;
 pub mod registration;
 pub mod speaker;
+pub mod speaker_registration;
 pub mod sponsor;
 pub mod user;
 pub mod venue;
@@ -38,9 +39,9 @@ pub use pagination::{ListQueryRequest, PaginatedResponse};
 pub use participant::{CreateParticipantRequest, ParticipantResponse, UpdateParticipantRequest};
 pub use price_tier::{CreatePriceTierRequest, PriceTierResponse};
 pub use registration::{
-    CreateRegistrationRequest, ParticipantInfo, PublicPromoInfo, RecordPaymentRequest,
-    RegisterDelegateRequest, RegistrationFormResponse, RegistrationResponse,
-    TransitionStatusRequest, UpdateRegistrationRequest,
+    CreateRegistrationRequest, ParticipantInfo, RecordPaymentRequest, RegisterDelegateRequest,
+    RegistrationFormResponse, RegistrationResponse, TransitionStatusRequest,
+    UpdateRegistrationRequest,
 };
 pub use speaker::{CreateSpeakerRequest, SpeakerResponse, UpdateSpeakerRequest};
 pub use sponsor::{CreateSponsorRequest, SponsorResponse, UpdateSponsorRequest};
