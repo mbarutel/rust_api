@@ -2,13 +2,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::{
-    application::dto::{ConferenceResponse, PriceTierResponse},
-    domain::models::{
-        PriceTier,
-        registration::{PaymentStatus, Registration},
-    },
-};
+use crate::domain::models::registration::{PaymentStatus, Registration};
 
 // const INITIAL_SUBMISSION: SubmissionType = {
 //   conferenceTitle: undefined,
@@ -32,36 +26,8 @@ use crate::{
 //   reference: "Manager, Family, Friend or Colleague",
 // };
 
-// #[derive(Debug, Deserialize, Validate)]
-// pub struct RegisterDelegateRequest {
-//     pub conference_id: u64,
-//     pub cost: Option<Decimal>,
-//     pub discount_code: Option<String>,
-//     pub discount_amount: Option<Decimal>,
-//     pub main_participant:
-// }
-
-// #[derive(Debug, Deserialize, Validate)]
-// pub struct RegisterSpeakerRequest {
-//     pub conference_id: u64,
-// }
-
-// #[derive(Debug, Deserialize, Validate)]
-// pub struct RegisterExhibitorRequest {
-//     pub conference_id: u64,
-// }
-
-// #[derive(Debug, Deserialize, Validate)]
-// pub struct RegisterSponsorRequest {
-//     pub conference_id: u64,
-// }
-
-// #[derive(Debug, Deserialize, Validate)]
-// pub struct SubmitDelegateRequest {
-//     pub conference_id: u64,
-// }
-#[derive(Debug, Deserialize, Validate)]
-pub struct ParticipantInfo {
+#[derive(Debug, Deserialize, Serialize, Validate)]
+pub struct ParticipantInfoRequest {
     pub first_name: String,
     pub last_name: String,
     pub job_title: String,
@@ -72,45 +38,6 @@ pub struct ParticipantInfo {
     pub networking_dinner: bool,
     pub masterclass_selection: Option<u64>,
     pub accomodation_nights: u8,
-}
-
-pub struct Speaker {
-    biography: String,
-}
-
-// #[derive(Debug, Serialize, Default)]
-// pub enum DiscountType {
-//     #[default]
-//     Percent,
-//     Fixed,
-// }
-
-// #[derive(Debug, Serialize, Default)]
-// pub struct PublicPromoInfo {
-//     pub id: u64,
-//     pub conference_id: u64,
-//     pub code: String,
-//     pub discount_type: DiscountType,
-//     pub amount: Decimal,
-//     pub max_uses: Option<u32>,
-//     pub used_count: u32,
-//     pub valid_until: Option<DateTime<Utc>>,
-// }
-
-#[derive(Debug, Serialize)]
-pub struct RegistrationFormResponse {
-    // This should be DelegateFormResponse
-    pub conference: ConferenceResponse,
-    pub price_tiers: Vec<PriceTierResponse>,
-}
-
-#[derive(Debug, Deserialize, Validate)]
-pub struct RegisterDelegateRequest {
-    pub conference_id: u64,
-    pub price_tier: PriceTier,
-    pub discount_code: Option<String>,
-    pub delegates: Vec<ParticipantInfo>,
-    pub referrer: String,
 }
 
 #[derive(Debug, Deserialize, Validate)]

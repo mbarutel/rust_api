@@ -9,8 +9,9 @@ use crate::{
     application::dto::{
         PriceTierResponse,
         conference::{ConferenceResponse, CreateConferenceRequest, UpdateConferenceRequest},
+        delegate_registration::{DelegateFormResponse, DelegateRegistrationRequest},
         pagination::{ListQueryRequest, PaginatedResponse},
-        registration::{RegisterDelegateRequest, RegistrationFormResponse, RegistrationResponse},
+        registration::RegistrationResponse,
     },
     presentation::{
         error::HandlerError,
@@ -145,7 +146,7 @@ async fn generate_price_tiers(
 async fn delegate_form(
     State(state): State<AppState>,
     Path(id): Path<u64>,
-) -> Result<Json<RegistrationFormResponse>, HandlerError> {
+) -> Result<Json<DelegateFormResponse>, HandlerError> {
     let registration_form = state
         .services
         .conference_registration
@@ -157,7 +158,7 @@ async fn delegate_form(
 
 async fn register_delegate(
     State(state): State<AppState>,
-    Json(dto): Json<RegisterDelegateRequest>,
+    Json(dto): Json<DelegateRegistrationRequest>,
 ) -> Result<Json<RegistrationResponse>, HandlerError> {
     let registration = state
         .services
@@ -195,7 +196,8 @@ mod tests {
             start_date: None,
             end_date: None,
             venue: None,
-            published: false,
+            group_discount: None,
+            is_published: false,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         }

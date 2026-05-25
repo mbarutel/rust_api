@@ -19,6 +19,17 @@ curl -s -X POST "$BASE_URL/api/conferences/$CONFERENCE_ID/register/delegate" \
         "networking_dinner": true,
         "masterclass_selection": null,
         "accomodation_nights": 2
+      },
+      {
+        "first_name": "Mark",
+        "last_name": "Carlos",
+        "job_title": "Engineering Lead",
+        "organization_name": "Acme Corp",
+        "email": "mark.carlos@example.com",
+        "dietary_requirements": "none",
+        "networking_dinner": true,
+        "masterclass_selection": null,
+        "accomodation_nights": 3
       }
     ],
     "referrer": "Colleague"

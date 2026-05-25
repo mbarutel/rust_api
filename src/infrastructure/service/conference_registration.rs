@@ -7,8 +7,8 @@ use sqlx::MySqlPool;
 use crate::{
     application::{
         dto::{
-            ConferenceResponse, GroupDiscountResponse, PriceTierResponse, RegisterDelegateRequest,
-            RegistrationFormResponse, RegistrationResponse,
+            ConferenceResponse, PriceTierResponse, RegistrationResponse,
+            delegate_registration::{DelegateFormResponse, DelegateRegistrationRequest},
         },
         entity::{ClientEntity, OrganizationEntity, ParticipantEntity, RegistrationEntity},
         error::AppError,
@@ -67,7 +67,7 @@ impl ConferenceRegistrationService for ConferenceRegistrationServiceImpl {
     async fn register_delegates_form(
         &self,
         conference_id: u64,
-    ) -> Result<RegistrationFormResponse, AppError> {
+    ) -> Result<DelegateFormResponse, AppError> {
         let conference = self.conference_repo.find_by_id(conference_id).await?;
 
         if conference.start_date.is_none() {
@@ -90,7 +90,7 @@ impl ConferenceRegistrationService for ConferenceRegistrationServiceImpl {
             .map(PriceTierResponse::from)
             .collect();
 
-        Ok(RegistrationFormResponse {
+        Ok(DelegateFormResponse {
             conference: ConferenceResponse::from(Conference::from(conference).with_venue(venue)),
             price_tiers,
         })
@@ -98,8 +98,10 @@ impl ConferenceRegistrationService for ConferenceRegistrationServiceImpl {
 
     async fn register_delegates(
         &self,
-        dto: RegisterDelegateRequest,
+        dto: DelegateRegistrationRequest,
     ) -> Result<RegistrationResponse, AppError> {
+        let price_tier = self.price_tier_repo.find_by_id(dto.price_tier_id).await?;
+
         let mut tx = self
             .pool
             .begin()
@@ -114,7 +116,7 @@ impl ConferenceRegistrationService for ConferenceRegistrationServiceImpl {
                     id: 0,
                     conference_id: dto.conference_id,
                     status: RegistrationStatus::Submitted.as_str().to_string(),
-                    cost: dto.price_tier.price,
+                    cost: price_tier.price,
                     discount_code: dto.discount_code.clone(),
                     discount_amount: Decimal::ZERO,
                     amount_paid: Decimal::ZERO,

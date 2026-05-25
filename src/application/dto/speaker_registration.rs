@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::application::dto::{ConferenceResponse, ParticipantInfo};
+use crate::application::dto::ConferenceResponse;
 
 #[derive(Debug, Serialize)]
 pub struct SpeakerFormResponse {
@@ -16,12 +16,12 @@ pub struct Paper {
     description: String,
 }
 
-#[derive(Debug, Deserialize, Validate)]
-pub struct Speaker {
-    participant_info: ParticipantInfo,
-    #[validate(length(min = 50))]
-    biography: String,
-}
+// #[derive(Debug, Deserialize, Validate)]
+// pub struct Speaker {
+//     participant_info: ParticipantInfo,
+//     #[validate(length(min = 50))]
+//     biography: String,
+// }
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct SpeakerRegistrationRequest {

@@ -3,6 +3,7 @@ pub mod activity_booking;
 pub mod auth;
 pub mod client;
 pub mod conference;
+pub mod delegate_registration;
 pub mod exhibitor;
 pub mod group_discount;
 pub mod masterclass;
@@ -39,9 +40,8 @@ pub use pagination::{ListQueryRequest, PaginatedResponse};
 pub use participant::{CreateParticipantRequest, ParticipantResponse, UpdateParticipantRequest};
 pub use price_tier::{CreatePriceTierRequest, PriceTierResponse};
 pub use registration::{
-    CreateRegistrationRequest, ParticipantInfo, RecordPaymentRequest, RegisterDelegateRequest,
-    RegistrationFormResponse, RegistrationResponse, TransitionStatusRequest,
-    UpdateRegistrationRequest,
+    CreateRegistrationRequest, ParticipantInfoRequest, RecordPaymentRequest, RegistrationResponse,
+    TransitionStatusRequest, UpdateRegistrationRequest,
 };
 pub use speaker::{CreateSpeakerRequest, SpeakerResponse, UpdateSpeakerRequest};
 pub use sponsor::{CreateSponsorRequest, SponsorResponse, UpdateSponsorRequest};

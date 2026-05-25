@@ -31,6 +31,7 @@ impl Repository<GroupDiscountEntity> for GroupDiscountRepositoryImpl {
                 SELECT
                     id,
                     name,
+                    code,
                     min_quantity,
                     free_quantity,
                     active,
@@ -59,6 +60,7 @@ impl Repository<GroupDiscountEntity> for GroupDiscountRepositoryImpl {
                 SELECT
                     id,
                     name,
+                    code,
                     min_quantity,
                     free_quantity,
                     active,
@@ -85,6 +87,7 @@ impl Repository<GroupDiscountEntity> for GroupDiscountRepositoryImpl {
             "INSERT INTO
                 group_discounts (
                     name,
+                    code,
                     min_quantity,
                     free_quantity,
                     active,
@@ -93,9 +96,10 @@ impl Repository<GroupDiscountEntity> for GroupDiscountRepositoryImpl {
                     updated_at
                 )
                 VALUES (
-                    ?, ?, ?, ?, ?, ?, ?
+                    ?, ?, ?, ?, ?, ?, ?, ?
                 )",
             entity.name,
+            entity.code,
             entity.min_quantity,
             entity.free_quantity,
             entity.active,
@@ -120,6 +124,7 @@ impl Repository<GroupDiscountEntity> for GroupDiscountRepositoryImpl {
                 group_discounts
             SET
                 name = ?,
+                code = ?,
                 min_quantity = ?,
                 free_quantity = ?,
                 active = ?,
@@ -128,6 +133,7 @@ impl Repository<GroupDiscountEntity> for GroupDiscountRepositoryImpl {
             WHERE
                 id = ?",
             entity.name,
+            entity.code,
             entity.min_quantity,
             entity.free_quantity,
             entity.active,

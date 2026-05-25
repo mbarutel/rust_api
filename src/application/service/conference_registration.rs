@@ -1,5 +1,8 @@
 use crate::application::{
-    dto::registration::{RegisterDelegateRequest, RegistrationFormResponse, RegistrationResponse},
+    dto::{
+        delegate_registration::{DelegateFormResponse, DelegateRegistrationRequest},
+        registration::RegistrationResponse,
+    },
     error::AppError,
 };
 
@@ -9,11 +12,11 @@ pub trait ConferenceRegistrationService: Send + Sync {
     async fn register_delegates_form(
         &self,
         conference_id: u64,
-    ) -> Result<RegistrationFormResponse, AppError>;
+    ) -> Result<DelegateFormResponse, AppError>;
 
     async fn register_delegates(
         &self,
-        dto: RegisterDelegateRequest,
+        dto: DelegateRegistrationRequest,
     ) -> Result<RegistrationResponse, AppError>;
 
     // async fn register_speakers(
