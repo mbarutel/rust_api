@@ -61,6 +61,7 @@ impl RegistrationService for RegistrationServiceImpl {
             discount_amount: dto.discount_amount.unwrap_or(Decimal::ZERO),
             amount_paid: Decimal::ZERO,
             created_by_id: dto.created_by_id,
+            referrer: dto.referrer,
             notes_internal: dto.notes_internal,
             created_at: Utc::now(),
             updated_at: Utc::now(),

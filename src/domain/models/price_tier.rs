@@ -11,3 +11,20 @@ pub struct PriceTier {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+impl PriceTier {
+    // Check if the PriceTier has not expired yet.
+    // We don't really care if the user chooses a more
+    // expensive price_tier, we only care that the deadline
+    // has not passed yet.
+    pub fn is_expired(&self) -> bool {
+        let today = Utc::now().date_naive();
+
+        // Still valid, has not passed yet
+        if today <= self.deadline {
+            return true;
+        }
+
+        return false;
+    }
+}

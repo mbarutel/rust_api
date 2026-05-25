@@ -158,7 +158,7 @@ impl Repository<GroupDiscountEntity> for GroupDiscountRepositoryImpl {
     }
 
     async fn count(&self) -> Result<u64, DomainError> {
-        let count = sqlx::query_scalar("SELECT COUNT(*) FROM group_discountsO")
+        let count = sqlx::query_scalar("SELECT COUNT(*) FROM group_discounts")
             .fetch_one(&self.pool)
             .await
             .map_err(map_db_err)?;
@@ -168,4 +168,30 @@ impl Repository<GroupDiscountEntity> for GroupDiscountRepositoryImpl {
 }
 
 #[async_trait::async_trait]
-impl GroupDiscountRepository for GroupDiscountRepositoryImpl {}
+impl GroupDiscountRepository for GroupDiscountRepositoryImpl {
+    async fn find_by_code(&self, code: &str) -> Result<Option<GroupDiscountEntity>, DomainError> {
+        sqlx::query_as!(
+            GroupDiscountEntity,
+            "
+                SELECT
+                    id,
+                    name,
+                    code,
+                    min_quantity,
+                    free_quantity,
+                    active,
+                    valid_until,
+                    created_at,
+                    updated_at
+                FROM
+                    group_discounts
+                WHERE
+                    code = ?
+            ",
+            code
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_db_err)
+    }
+}

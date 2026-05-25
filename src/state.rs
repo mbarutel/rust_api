@@ -186,6 +186,7 @@ impl Services {
             repos.conference.clone(),
             repos.venue.clone(),
             repos.price_tier.clone(),
+            repos.group_discount.clone(),
         ));
         let group_discount = Arc::new(GroupDiscountServiceImpl::new(repos.group_discount.clone()));
 

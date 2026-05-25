@@ -116,7 +116,7 @@ impl Repository<ClientEntity> for DbClientRepository {
 
 #[async_trait::async_trait]
 impl ClientRepository for DbClientRepository {
-    async fn find_by_email(&self, email: &str) -> Result<ClientEntity, DomainError> {
+    async fn find_by_email(&self, email: &str) -> Result<Option<ClientEntity>, DomainError> {
         sqlx::query_as!(
             ClientEntity,
             "SELECT
@@ -133,7 +133,7 @@ impl ClientRepository for DbClientRepository {
                 email = ?",
             email,
         )
-        .fetch_one(&self.pool)
+        .fetch_optional(&self.pool)
         .await
         .map_err(map_find_err)
     }

@@ -23,8 +23,9 @@ use crate::{
     presentation::{
         handler::{
             activity_routes, auth_routes, client_routes, conference_routes, exhibitor_routes,
-            health_routes, masterclass_routes, organization_routes, participant_routes,
-            registration_routes, speaker_routes, sponsor_routes, user_routes, venue_routes,
+            group_discount_routes, health_routes, masterclass_routes, organization_routes,
+            participant_routes, registration_routes, speaker_routes, sponsor_routes, user_routes,
+            venue_routes,
         },
         middleware::rate_limiting::rate_limit_config,
     },
@@ -108,7 +109,8 @@ pub fn build_router(state: AppState, config: &Config) -> Router {
         .merge(speaker_routes())
         .merge(sponsor_routes())
         .merge(user_routes())
-        .merge(venue_routes());
+        .merge(venue_routes())
+        .merge(group_discount_routes());
 
     let router = if config.rate_limiting {
         router.layer(GovernorLayer::new(rate_limit_config()))

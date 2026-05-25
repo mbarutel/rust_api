@@ -1,7 +1,7 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 
 use crate::{
-    application::entity::VenueEntity,
+    application::entity::{GroupDiscountEntity, VenueEntity},
     domain::models::{GroupDiscount, conference::Conference, venue::Venue},
 };
 
@@ -54,7 +54,7 @@ impl Conference {
         self
     }
 
-    pub fn with_group_discount(mut self, group_discount: Option<GroupDiscount>) -> Self {
+    pub fn with_group_discount(mut self, group_discount: Option<GroupDiscountEntity>) -> Self {
         self.group_discount = group_discount.map(GroupDiscount::from);
         self
     }

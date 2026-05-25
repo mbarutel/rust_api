@@ -150,4 +150,26 @@ impl OrganizationRepository for DbOrganizationRepository {
             ..entity
         })
     }
+
+    async fn find_by_name(&self, name: &str) -> Result<Option<OrganizationEntity>, DomainError> {
+        sqlx::query_as!(
+            OrganizationEntity,
+            "SELECT 
+                id,
+                name,
+                website,
+                phone,
+                billing_email,
+                created_at,
+                updated_at
+            FROM
+                organizations
+            WHERE 
+                name = ?",
+            name,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_db_err)
+    }
 }

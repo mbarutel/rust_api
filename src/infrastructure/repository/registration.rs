@@ -25,6 +25,7 @@ impl Repository<RegistrationEntity> for DbRegistrationRepository {
                 discount_amount,
                 amount_paid,
                 created_by_id,
+                referrer,
                 notes_internal,
                 created_at,
                 updated_at
@@ -53,6 +54,7 @@ impl Repository<RegistrationEntity> for DbRegistrationRepository {
                 discount_amount,
                 amount_paid,
                 created_by_id,
+                referrer,
                 notes_internal,
                 created_at,
                 updated_at
@@ -66,10 +68,7 @@ impl Repository<RegistrationEntity> for DbRegistrationRepository {
         .map_err(map_db_err)
     }
 
-    async fn create(
-        &self,
-        registration: RegistrationEntity,
-    ) -> Result<RegistrationEntity, DomainError> {
+    async fn create(&self, entity: RegistrationEntity) -> Result<RegistrationEntity, DomainError> {
         sqlx::query!(
             "INSERT INTO registration (
                 conference_id,
@@ -79,32 +78,31 @@ impl Repository<RegistrationEntity> for DbRegistrationRepository {
                 discount_amount,
                 amount_paid,
                 created_by_id,
+                referrer,
                 notes_internal,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            registration.conference_id,
-            registration.status,
-            registration.cost,
-            registration.discount_code,
-            registration.discount_amount,
-            registration.amount_paid,
-            registration.created_by_id,
-            registration.notes_internal,
-            registration.created_at,
-            registration.updated_at,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            entity.conference_id,
+            entity.status,
+            entity.cost,
+            entity.discount_code,
+            entity.discount_amount,
+            entity.amount_paid,
+            entity.created_by_id,
+            entity.referrer,
+            entity.notes_internal,
+            entity.created_at,
+            entity.updated_at,
         )
         .execute(&self.pool)
         .await
         .map_err(map_db_err)?;
 
-        Ok(registration)
+        Ok(entity)
     }
 
-    async fn update(
-        &self,
-        registration: RegistrationEntity,
-    ) -> Result<RegistrationEntity, DomainError> {
+    async fn update(&self, entity: RegistrationEntity) -> Result<RegistrationEntity, DomainError> {
         sqlx::query!(
             "UPDATE registration SET
                 status = ?,
@@ -112,23 +110,25 @@ impl Repository<RegistrationEntity> for DbRegistrationRepository {
                 discount_code = ?,
                 discount_amount = ?,
                 amount_paid = ?,
+                referrer = ?,
                 notes_internal = ?,
                 updated_at = ?
             WHERE id = ?",
-            registration.status,
-            registration.cost,
-            registration.discount_code,
-            registration.discount_amount,
-            registration.amount_paid,
-            registration.notes_internal,
-            registration.updated_at,
-            registration.id,
+            entity.status,
+            entity.cost,
+            entity.discount_code,
+            entity.discount_amount,
+            entity.amount_paid,
+            entity.referrer,
+            entity.notes_internal,
+            entity.updated_at,
+            entity.id,
         )
         .execute(&self.pool)
         .await
         .map_err(map_db_err)?;
 
-        Ok(registration)
+        Ok(entity)
     }
 
     impl_count!("registration");
@@ -144,9 +144,18 @@ impl RegistrationRepository for DbRegistrationRepository {
     ) -> Result<RegistrationEntity, DomainError> {
         let result = sqlx::query!(
             "INSERT INTO registration (
-                conference_id, status, cost, discount_code, discount_amount,
-                amount_paid, created_by_id, notes_internal, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                conference_id,
+                status,
+                cost,
+                discount_code,
+                discount_amount,
+                amount_paid,
+                created_by_id,
+                referrer,
+                notes_internal,
+                created_at,
+                updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             entity.conference_id,
             entity.status,
             entity.cost,
@@ -154,6 +163,7 @@ impl RegistrationRepository for DbRegistrationRepository {
             entity.discount_amount,
             entity.amount_paid,
             entity.created_by_id,
+            entity.referrer,
             entity.notes_internal,
             entity.created_at,
             entity.updated_at,
@@ -183,11 +193,14 @@ impl RegistrationRepository for DbRegistrationRepository {
                 discount_amount,
                 amount_paid,
                 created_by_id,
+                referrer,
                 notes_internal,
                 created_at,
                 updated_at
-            FROM registration
-            WHERE conference_id = ?",
+            FROM
+                registration
+            WHERE
+                conference_id = ?",
             conference_id,
         )
         .fetch_all(&self.pool)

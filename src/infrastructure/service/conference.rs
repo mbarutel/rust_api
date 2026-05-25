@@ -84,8 +84,18 @@ impl ConferenceService for ConferenceServiceImpl {
             },
             None => None,
         };
+        let group_discount = match conference.group_discount_id {
+            Some(id) => match self.group_discount_repo.find_by_id(id).await {
+                Ok(v) => Some(v),
+                Err(DomainError::NotFound) => None,
+                Err(e) => return Err(AppError::Domain(e)),
+            },
+            None => None,
+        };
 
-        let conference = Conference::from(conference).with_venue(venue);
+        let conference = Conference::from(conference)
+            .with_venue(venue)
+            .with_group_discount(group_discount);
 
         Ok(conference)
     }

@@ -1,12 +1,12 @@
 services:
   db:
     image: mysql:8.0
-    container_name: rust-mysql-db
+    container_name: conference-services-db
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_USER: mysql
       MYSQL_PASSWORD: password
-      MYSQL_DATABASE: rust-axum-rest-api
+      MYSQL_DATABASE: conference-services
     ports:
       - "3306:3306"
     volumes:

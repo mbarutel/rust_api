@@ -43,10 +43,11 @@ pub struct ParticipantInfoRequest {
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateRegistrationRequest {
     pub conference_id: u64,
-    pub created_by_id: Option<u64>,
+    pub created_by_id: u64,
     pub cost: Option<Decimal>,
     pub discount_code: Option<String>,
     pub discount_amount: Option<Decimal>,
+    pub referrer: Option<String>,
     pub notes_internal: Option<String>,
 }
 
@@ -79,7 +80,8 @@ pub struct RegistrationResponse {
     pub discount_code: Option<String>,
     pub discount_amount: Decimal,
     pub amount_paid: Decimal,
-    pub created_by_id: Option<u64>, // Note: This should be not be an Option and should return the ClientResponse
+    pub created_by_id: u64,
+    pub referrer: Option<String>,
     pub notes_internal: Option<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -92,6 +94,7 @@ impl From<Registration> for RegistrationResponse {
             PaymentStatus::Partial => "partial",
             PaymentStatus::Paid => "paid",
         };
+
         RegistrationResponse {
             id: r.id,
             conference_id: r.conference_id,
@@ -102,6 +105,7 @@ impl From<Registration> for RegistrationResponse {
             discount_amount: r.discount_amount,
             amount_paid: r.amount_paid,
             created_by_id: r.created_by_id,
+            referrer: r.referrer,
             notes_internal: r.notes_internal,
             created_at: r.created_at.to_string(),
             updated_at: r.updated_at.to_string(),

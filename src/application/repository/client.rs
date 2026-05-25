@@ -5,7 +5,7 @@ use crate::{
 
 #[async_trait::async_trait]
 pub trait ClientRepository: Repository<ClientEntity> {
-    async fn find_by_email(&self, email: &str) -> Result<ClientEntity, DomainError>;
+    async fn find_by_email(&self, email: &str) -> Result<Option<ClientEntity>, DomainError>;
     async fn email_exists(&self, email: &str) -> Result<bool, DomainError>;
     async fn create_in_tx(
         &self,

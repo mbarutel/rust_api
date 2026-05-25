@@ -13,7 +13,7 @@ pub struct DelegateFormResponse {
 pub struct DelegateRegistrationRequest {
     pub conference_id: u64,
     pub price_tier_id: u64,
-    pub discount_code: Option<String>,
+    pub group_discount_code: Option<String>,
     #[validate(length(min = 1))]
     pub delegates: Vec<ParticipantInfoRequest>,
     pub referrer: String,

@@ -10,4 +10,5 @@ pub trait OrganizationRepository: Repository<OrganizationEntity> {
         tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
         entity: OrganizationEntity,
     ) -> Result<OrganizationEntity, DomainError>;
+    async fn find_by_name(&self, name: &str) -> Result<Option<OrganizationEntity>, DomainError>;
 }
