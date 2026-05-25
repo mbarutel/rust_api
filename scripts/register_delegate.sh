@@ -6,10 +6,7 @@ curl -s -X POST "$BASE_URL/api/conferences/$CONFERENCE_ID/register/delegate" \
   -H "Content-Type: application/json" \
   -d '{
     "conference_id": '"$CONFERENCE_ID"',
-    "price_tier": {
-      "price": "299.00",
-      "deadline": "2026-06-01T00:00:00Z"
-    },
+    "price_tier_id": 1,
     "discount_code": null,
     "delegates": [
       {

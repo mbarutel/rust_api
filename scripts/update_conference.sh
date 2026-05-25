@@ -10,6 +10,7 @@ curl -s -X PUT "$BASE_URL/api/conferences/$CONFERENCE_ID" \
     "name": "RustConf 2025 (Updated)",
     "description": "Updated description for the annual Rust conference",
     "venue_id": 2,
+    "group_discount": 1,
     "start_date": "2025-11-01T09:00:00",
     "end_date": "2025-11-03T17:00:00"
   }' | jq .
